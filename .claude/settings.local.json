@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(npm install:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pkill:*)",
+      "Bash(cat:*)",
+      "Bash(curl:*)",
+      "Bash(npx supabase:*)",
+      "Bash(pnpm supabase:*)",
+      "Bash(docker info:*)",
+      "Bash(python3:*)",
+      "Bash(PGPASSWORD=postgres psql:*)",
+      "Bash(pnpm add:*)",
+      "Bash(# Vérifier qu''il n''y a pas de placeholders/TODO dans les fichiers analytics echo \"\"=== Recherche de placeholders ===\"\" grep -r \"\"TODO\\\\|FIXME\\\\|placeholder\\\\|PLACEHOLDER\\\\|xxx\\\\|XXX\"\" /Users/prince/Developer/aureluz/components/analytics/ /Users/prince/Developer/aureluz/lib/actions/analytics.actions.ts /Users/prince/Developer/aureluz/app/api/analytics/ || echo \"\"✅ Aucun placeholder trouvé\"\" echo \"\"\"\" echo \"\"=== Vérification build production ===\"\" pnpm build 2>&1)",
+      "Bash(docker exec:*)",
+      "Bash(docker ps:*)",
+      "Bash(pip3 install:*)"
+    ]
+  }
+}
