@@ -17,7 +17,7 @@ export function HeroSection() {
         <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
           {/* Subtitle */}
           <p className="text-sm uppercase tracking-[0.3em] text-primary font-medium">
-            Décoration Événementielle
+            Aureluz Design - Décoration Événementielle
           </p>
 
           {/* Main title */}

@@ -42,8 +42,8 @@ export function AdminSidebar() {
       <div className="p-4 border-b border-border">
         <Link href="/admin" className="flex items-center gap-2">
           <NextImage
-            src="/images/logo.png"
-            alt="Aureluz Design"
+            src="/images/aureluz-design-logo-decoration-evenementielle.png"
+            alt="Aureluz Design - Administration"
             width={360}
             height={144}
             className="h-[7.5rem] w-auto"

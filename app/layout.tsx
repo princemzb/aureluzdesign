@@ -18,32 +18,50 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: {
-    default: 'AureLuz | Décoration Événementielle',
-    template: '%s | AureLuz',
+    default: 'Aureluz Design | Décoration Événementielle sur Mesure',
+    template: '%s | Aureluz Design',
   },
   description:
-    "L'art de sublimer vos instants précieux. Décoration événementielle haut de gamme pour mariages, événements d'exception et art de la table.",
+    "Aureluz Design - L'art de sublimer vos instants précieux. Décoration événementielle haut de gamme : prestations signature, instants précieux et coaching personnalisé.",
   keywords: [
+    'Aureluz',
+    'Aureluz Design',
+    'aureluzdesign',
+    'aureluz design',
+    'aure luz design',
     'décoration événementielle',
-    'mariage',
-    'art de la table',
-    'événements',
-    'luxe',
-    'AureLuz',
+    'décoration sur mesure',
+    'prestation signature',
+    'instants précieux',
+    'coaching décoration',
+    'événements haut de gamme',
   ],
-  authors: [{ name: 'AureLuz' }],
-  creator: 'AureLuz',
+  authors: [{ name: 'Aureluz Design' }],
+  creator: 'Aureluz Design',
+  metadataBase: new URL('https://www.aureluzdesign.fr'),
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
     type: 'website',
     locale: 'fr_FR',
-    url: 'https://aureluz.fr',
-    siteName: 'AureLuz',
-    title: 'AureLuz | Décoration Événementielle',
+    url: 'https://www.aureluzdesign.fr',
+    siteName: 'Aureluz Design',
+    title: 'Aureluz Design | Décoration Événementielle sur Mesure',
+    description: "Aureluz Design - L'art de sublimer vos instants précieux. Décoration événementielle haut de gamme.",
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Aureluz Design | Décoration Événementielle',
     description: "L'art de sublimer vos instants précieux.",
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
   },
 };
 

@@ -24,8 +24,8 @@ export function Header() {
         {/* Logo */}
         <Link href="/" className="flex items-center">
           <Image
-            src="/images/logo.png"
-            alt="Aureluz Design"
+            src="/images/aureluz-design-logo-decoration-evenementielle.png"
+            alt="Aureluz Design - Décoration événementielle sur mesure"
             width={300}
             height={120}
             className="h-24 w-auto"

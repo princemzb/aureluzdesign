@@ -34,8 +34,8 @@ export function Footer() {
         {/* Logo centré */}
         <div className="flex justify-center mb-3">
           <Image
-            src="/images/logo.png"
-            alt="Aureluz Design"
+            src="/images/aureluz-design-logo-decoration-evenementielle.png"
+            alt="Aureluz Design - Décoration événementielle sur mesure"
             width={400}
             height={160}
             className="h-32 w-auto brightness-0 invert"
