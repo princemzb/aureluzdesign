@@ -5,17 +5,17 @@ import { Instagram, Mail, Phone } from 'lucide-react';
 const socialLinks = [
   {
     name: 'Instagram',
-    href: 'https://instagram.com/aureluz',
+    href: 'https://www.instagram.com/aure_luz_design/',
     icon: Instagram,
   },
   {
     name: 'Email',
-    href: 'mailto:contact@aureluz.fr',
+    href: 'mailto:contact@aureluzdesign.fr',
     icon: Mail,
   },
   {
     name: 'Téléphone',
-    href: 'tel:+33600000000',
+    href: 'tel:+33661434365',
     icon: Phone,
   },
 ];
