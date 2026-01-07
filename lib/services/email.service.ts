@@ -7,10 +7,9 @@ import { EVENT_TYPES } from '@/lib/utils/constants';
 // Resend client
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Domaine de test Resend (en attendant la vérification de aureluzdesign.fr)
-// NOTE: Avec le domaine de test, les emails ne peuvent être envoyés qu'à l'email du compte Resend
-const FROM_EMAIL = 'AureLuz <onboarding@resend.dev>';
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'contact@aureluz.fr';
+// Email expéditeur (domaine vérifié sur Resend)
+const FROM_EMAIL = 'AureLuz Design <contact@aureluzdesign.fr>';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'aureluzdesign@gmail.com';
 
 function getEventTypeLabel(type: string): string {
   return EVENT_TYPES.find((t) => t.value === type)?.label || type;
