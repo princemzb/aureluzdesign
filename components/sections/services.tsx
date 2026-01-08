@@ -1,23 +1,25 @@
-import { Gem, PartyPopper, Lightbulb } from 'lucide-react';
 
 const services = [
   {
-    icon: Gem,
+    icon: null,
+    emoji: '💍',
     title: 'Prestation signature',
     description:
-      'Une décoration sur-mesure qui raconte votre histoire et sublime chaque instant de votre journée.\n\nInclus :\n• Rendez-vous découverte & définition de l\'univers du mariage\n• Création d\'une direction artistique personnalisée (style, couleurs, ambiance)\n• Décoration de la cérémonie (arche, allée, chaises, détails)\n• Décoration de la réception (tables, centres de table, espace mariés, signalétique)\n• Mise en scène florale & éléments décoratifs\n• Installation & désinstallation le jour J\n• Coordination décorative avec les autres prestataires\n\nIdéal pour :\nLes couples qui veulent un mariage harmonieux, élégant et sans stress.',
+      'Bien plus qu\'une décoration, une signature visuelle complète. Nous concevons l\'ambiance de votre cérémonie et de votre réception dans les moindres détails (fleurs, mobilier, mise en scène). De la conception à la dépose le jour J, nous donnons vie à vos rêves pendant que vous profitez de vos invités.',
   },
   {
-    icon: PartyPopper,
+    icon: null,
+    emoji: '🎂',
     title: 'Prestation instants précieux',
     description:
-      'Transformer un repas en une expérience esthétique et mémorable.\n\nInclus :\n• Conseil express sur le thème et l\'ambiance souhaitée\n• Palette de couleurs\n• Décoration de table (linge, vaisselle, bougies, fleurs, accessoires)\n• Mise en scène de l\'espace (intérieur ou extérieur)\n• Installation avant l\'événement\n\nTypes d\'événements :\nDîner de fiançailles, anniversaire, repas de famille, EVJF/EVG chic, baby shower.\n\nAtout clé :\nUne ambiance élégante, conviviale et personnalisée, même pour de petits événements.',
+      'L\'art de transformer un simple repas en une expérience esthétique et mémorable. De l\'intimité d\'un dîner de fiançailles à la joie d\'une baby shower, en passant par vos anniversaires et EVJF chic, nous créons un écrin sur-mesure pour vos plus beaux souvenirs. Une ambiance élégante et conviviale, jusque dans les moindres détails.',
   },
   {
-    icon: Lightbulb,
+    icon: null,
+    emoji: '💡',
     title: 'Coaching',
     description:
-      'Un accompagnement créatif pour celles et ceux qui souhaitent faire eux-mêmes, mais bien.\n\nInclus :\n• Analyse de l\'événement et de vos besoins\n• Définition de la vision globale (style, storytelling, ambiance)\n• Travail sur les couleurs, la lumière et les volumes\n• Conseils sur la scénographie et l\'aménagement de l\'espace\n• Recommandation de fournisseurs & prestataires adaptés\n• Moodboard & plan décoratif détaillé\n• Session(s) de coaching (visio ou présentiel)\n\nIdéal pour :\nMariés créatifs, organisateurs d\'événements, particuliers ou professionnels.\n\nRésultat :\nUne décoration cohérente, impactante et fidèle à votre vision.',
+      'L\'art de faire soi-même, avec l\'œil d\'une experte. Pour les mariés créatifs et les organisateurs qui souhaitent piloter leur décoration, nous vous offrons une boussole esthétique. Ensemble, nous définissons une vision cohérente et impactante pour donner vie à votre projet, avec l\'assurance d\'un résultat professionnel.',
   },
 ];
 
@@ -49,19 +51,24 @@ export function ServicesSection() {
               style={{ animationDelay: `${index * 100}ms` }}
             >
               {/* Icon */}
-              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
-                <service.icon className="w-7 h-7 text-primary" />
+              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors mx-auto">
+                {service.icon ? (
+                  <service.icon className="w-7 h-7 text-primary" />
+                ) : (
+                  <span className="text-3xl">{service.emoji}</span>
+                )}
               </div>
 
               {/* Title */}
-              <h3 className="font-serif text-xl font-medium text-foreground mb-3">
+              <h3 className="font-serif text-xl font-medium text-foreground mb-3 text-center">
                 {service.title}
               </h3>
 
               {/* Description */}
-              <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                {service.description}
-              </p>
+              <p
+                className="text-muted-foreground leading-relaxed whitespace-pre-line"
+                dangerouslySetInnerHTML={{ __html: service.description }}
+              />
             </div>
           ))}
         </div>
