@@ -4,8 +4,15 @@ import { fr } from 'date-fns/locale';
 import type { BookingFormData } from '@/lib/validators/booking.schema';
 import { EVENT_TYPES } from '@/lib/utils/constants';
 
-// Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Resend client - initialisation paresseuse pour éviter les erreurs au build
+let resendClient: Resend | null = null;
+
+function getResendClient(): Resend {
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
 
 // Email expéditeur (domaine vérifié sur Resend)
 const FROM_EMAIL = 'AureLuz Design <contact@aureluzdesign.fr>';
@@ -34,7 +41,7 @@ async function sendEmail({
   try {
     console.log(`📧 Envoi email à ${to}...`);
 
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResendClient().emails.send({
       from: FROM_EMAIL,
       to,
       subject,
