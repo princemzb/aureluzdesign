@@ -90,7 +90,7 @@ export async function sendBookingConfirmation(
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">AureLuz</div>
+            <div class="logo">AureLuz Design</div>
             <p>Décoration Événementielle</p>
           </div>
 
@@ -204,6 +204,156 @@ export async function sendAdminNotification(
   });
 }
 
+// Détecte si l'email est Gmail
+function isGmailAddress(email: string): boolean {
+  return email.toLowerCase().endsWith('@gmail.com') || email.toLowerCase().endsWith('@googlemail.com');
+}
+
+// Template design complet (pour non-Gmail) - fond crème
+function getSalonEmailTemplateDesign(name: string, bookingUrl: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #FDF8F3; }
+        .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
+        .card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: white; padding: 40px 30px; text-align: center; }
+        .logo { font-family: Georgia, serif; font-size: 32px; font-weight: 400; color: #c9a227; margin-bottom: 8px; }
+        .tagline { font-size: 14px; color: #999; letter-spacing: 2px; text-transform: uppercase; }
+        .content { padding: 40px 30px; background-color: #FFFDF9; }
+        .greeting { font-size: 18px; margin-bottom: 20px; }
+        .message { color: #555; margin-bottom: 25px; }
+        .cta-container { text-align: center; margin: 35px 0; }
+        .cta { display: inline-block; background: linear-gradient(135deg, #c9a227 0%, #d4af37 100%); color: white; padding: 16px 40px; border-radius: 50px; text-decoration: none; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(201, 162, 39, 0.3); }
+        .signature { margin-top: 30px; padding-top: 25px; border-top: 1px solid #eee; }
+        .signature-name { font-weight: 600; color: #1a1a1a; }
+        .signature-title { font-size: 14px; color: #888; }
+        .footer { text-align: center; padding: 25px 30px; background: #FAF7F2; font-size: 12px; color: #999; }
+        .social-hint { font-style: italic; color: #888; font-size: 14px; margin-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="card">
+          <div class="header">
+            <div class="logo">AureLuz Design</div>
+            <div class="tagline">Décoration sur mesure</div>
+          </div>
+
+          <div class="content">
+            <p class="greeting">Bonjour ${name},</p>
+
+            <p class="message">
+              C'était un réel plaisir de vous rencontrer lors du Salon du Mariage !
+            </p>
+
+            <p class="message">
+              J'espère que cette journée vous a inspiré pour votre futur événement.
+              Comme promis, je reviens vers vous pour vous accompagner dans la création
+              d'une décoration unique et à votre image.
+            </p>
+
+            <p class="message">
+              Je serais ravie d'échanger avec vous sur votre projet et de vous présenter
+              mes différentes prestations lors d'un rendez-vous personnalisé.
+            </p>
+
+            <div class="cta-container">
+              <a href="${bookingUrl}" class="cta">
+                Prendre rendez-vous
+              </a>
+            </div>
+
+            <div class="social-hint" style="text-align: center;">
+              <p style="margin-bottom: 12px;">N'hésitez pas à me suivre sur Instagram pour découvrir mes dernières réalisations !</p>
+              <a href="https://www.instagram.com/aure_luz_design/" style="display: inline-block;">
+                <img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" alt="Instagram" style="width: 32px; height: 32px;" />
+              </a>
+            </div>
+
+            <div class="signature">
+              <p class="signature-name">Aurélie</p>
+              <p class="signature-title">Fondatrice d'AureLuz Design</p>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} AureLuz Design. Tous droits réservés.</p>
+            <p>Cet email vous a été envoyé suite à notre rencontre au Salon du Mariage.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// Template simplifié pour Gmail (évite l'onglet Promotions)
+function getSalonEmailTemplateSimple(name: string, bookingUrl: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.7; color: #333; margin: 0; padding: 20px; background-color: #FDF8F3; }
+        .container { max-width: 600px; margin: 0 auto; padding: 30px; background: #FFFDF9; }
+        a { color: #c9a227; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <p>Bonjour ${name},</p>
+
+        <p>C'était un réel plaisir de vous rencontrer lors du Salon du Mariage !</p>
+
+        <p>J'espère que cette journée vous a inspiré pour votre futur événement. Comme promis, je reviens vers vous pour vous accompagner dans la création d'une décoration unique et à votre image.</p>
+
+        <p>Je serais ravie d'échanger avec vous sur votre projet et de vous présenter mes différentes prestations lors d'un rendez-vous personnalisé.</p>
+
+        <p><strong>→ Prendre rendez-vous :</strong> <a href="${bookingUrl}">${bookingUrl}</a></p>
+
+        <p>N'hésitez pas à me suivre sur Instagram pour découvrir mes dernières réalisations : <a href="https://www.instagram.com/aure_luz_design/">@aure_luz_design</a></p>
+
+        <p>À très bientôt,</p>
+        <p><strong>Aurélie</strong><br>
+        <em>Fondatrice d'AureLuz Design</em></p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// Export des templates pour la prévisualisation
+export function getSalonEmailPreview(name: string, isGmail: boolean): string {
+  const bookingUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/booking`;
+  return isGmail
+    ? getSalonEmailTemplateSimple(name, bookingUrl)
+    : getSalonEmailTemplateDesign(name, bookingUrl);
+}
+
+// Email campagne salon du mariage
+export async function sendSalonCampaignEmail(
+  to: string,
+  name: string
+): Promise<{ success: boolean; error?: string }> {
+  const bookingUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/booking`;
+
+  // Choisir le template selon le type d'email
+  const html = isGmailAddress(to)
+    ? getSalonEmailTemplateSimple(name, bookingUrl)
+    : getSalonEmailTemplateDesign(name, bookingUrl);
+
+  return sendEmail({
+    to,
+    subject: 'Suite à notre rencontre au Salon du Mariage - AureLuz',
+    html,
+  });
+}
+
 export async function sendStatusUpdate(
   clientEmail: string,
   clientName: string,
@@ -238,7 +388,7 @@ export async function sendStatusUpdate(
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">AureLuz</div>
+            <div class="logo">AureLuz Design</div>
           </div>
 
           <div class="status ${status}">
