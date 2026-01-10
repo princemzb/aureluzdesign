@@ -49,7 +49,9 @@ export function PhotoUpload({ onSuccess, onCancel }: PhotoUploadProps) {
 
     // Validate size
     if (selectedFile.size > BUSINESS_CONFIG.MAX_UPLOAD_SIZE) {
-      setError('Fichier trop volumineux (max 5MB).');
+      const fileSizeMB = (selectedFile.size / (1024 * 1024)).toFixed(2);
+      const maxSizeMB = (BUSINESS_CONFIG.MAX_UPLOAD_SIZE / (1024 * 1024)).toFixed(0);
+      setError(`Image trop volumineuse (${fileSizeMB} MB). Limite autorisée : ${maxSizeMB} MB. Veuillez compresser l'image avant de réessayer.`);
       return;
     }
 
@@ -175,7 +177,7 @@ export function PhotoUpload({ onSuccess, onCancel }: PhotoUploadProps) {
                 ou cliquez pour sélectionner
               </p>
               <p className="text-xs text-muted-foreground mt-2">
-                JPG, PNG ou WebP • Max 5MB
+                JPG, PNG ou WebP • Max 5 MB
               </p>
             </div>
             <Button

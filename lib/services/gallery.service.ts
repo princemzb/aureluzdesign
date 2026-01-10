@@ -59,7 +59,9 @@ export class GalleryService {
 
     // Validate file size
     if (file.size > BUSINESS_CONFIG.MAX_UPLOAD_SIZE) {
-      throw new Error('Fichier trop volumineux (max 5MB)');
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      const maxSizeMB = (BUSINESS_CONFIG.MAX_UPLOAD_SIZE / (1024 * 1024)).toFixed(0);
+      throw new Error(`Image trop volumineuse (${fileSizeMB} MB). Limite : ${maxSizeMB} MB`);
     }
 
     // Generate unique filename
