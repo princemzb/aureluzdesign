@@ -1,6 +1,11 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import type { Photo, PhotoCategory } from '@/lib/types';
 import { BUSINESS_CONFIG } from '@/lib/utils/constants';
+
+// Note: Les opérations d'écriture utilisent createAdminClient() car :
+// - Les routes /admin/* sont déjà protégées par le middleware
+// - La session utilisateur ne se propage pas toujours aux Server Actions
+// Les opérations de lecture restent avec createClient() (accès public)
 
 const STORAGE_BUCKET = 'photos';
 
@@ -45,7 +50,7 @@ export class GalleryService {
   }
 
   static async uploadToStorage(file: File): Promise<string> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Validate file type
     if (!(BUSINESS_CONFIG.ACCEPTED_IMAGE_TYPES as readonly string[]).includes(file.type)) {
@@ -89,7 +94,7 @@ export class GalleryService {
     alt: string;
     category: PhotoCategory;
   }): Promise<Photo> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Get max display order
     const { data: maxOrderData } = await supabase
@@ -121,7 +126,7 @@ export class GalleryService {
   }
 
   static async delete(id: string): Promise<void> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Get photo to find storage filename
     const photo = await this.getById(id);
@@ -157,7 +162,7 @@ export class GalleryService {
   }
 
   static async updateOrder(orderedIds: string[]): Promise<void> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Update each photo's display_order
     const updates = orderedIds.map((id, index) =>
@@ -174,7 +179,7 @@ export class GalleryService {
     id: string,
     input: { alt?: string; category?: PhotoCategory }
   ): Promise<Photo> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { data, error } = await supabase
       .from('photos')
