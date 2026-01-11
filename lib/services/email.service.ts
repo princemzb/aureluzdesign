@@ -121,14 +121,6 @@ export async function sendBookingConfirmation(
 
           <p>Nous reviendrons vers vous dans les plus brefs délais pour confirmer ce rendez-vous.</p>
 
-          <div style="background: #f8f5f0; border-radius: 12px; padding: 20px; margin: 25px 0; text-align: center;">
-            <p style="margin: 0 0 15px 0; font-weight: 600; color: #1a1a1a;">Lien de la consultation vidéo</p>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/meeting" style="display: inline-block; background: #c9a227; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
-              Rejoindre la réunion
-            </a>
-            <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">Ce lien sera actif au moment de votre rendez-vous confirmé</p>
-          </div>
-
           <p>À très bientôt,<br><strong>L'équipe AureLuz</strong></p>
 
           <div class="footer">
