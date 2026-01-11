@@ -369,6 +369,10 @@ export async function sendStatusUpdate(
   const appointmentDate = formatAppointmentDate(date, time);
   const isConfirmed = status === 'confirmed';
 
+  // Format date as dd/mm/yyyy
+  const d = parseISO(date);
+  const formattedDateShort = format(d, 'dd/MM/yyyy', { locale: fr });
+
   return sendEmail({
     to: clientEmail,
     subject: isConfirmed
@@ -410,9 +414,9 @@ export async function sendStatusUpdate(
             <p>Nous avons hâte de vous rencontrer pour discuter de votre projet.</p>
 
             <div style="background: #dcfce7; border-radius: 12px; padding: 20px; margin: 25px 0; text-align: center;">
-              <p style="margin: 0 0 15px 0; font-weight: 600; color: #166534;">Rejoignez la consultation vidéo</p>
+              <p style="margin: 0 0 15px 0; font-weight: 600; color: #166534;">Consultation vidéo</p>
               <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/meeting" style="display: inline-block; background: #166534; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
-                Accéder à la réunion
+                Rejoindre le ${formattedDateShort} à ${time}
               </a>
               <p style="margin: 15px 0 0 0; font-size: 12px; color: #166534;">Cliquez sur ce lien au moment de votre rendez-vous</p>
             </div>
