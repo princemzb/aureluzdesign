@@ -121,6 +121,14 @@ export async function sendBookingConfirmation(
 
           <p>Nous reviendrons vers vous dans les plus brefs délais pour confirmer ce rendez-vous.</p>
 
+          <div style="background: #f8f5f0; border-radius: 12px; padding: 20px; margin: 25px 0; text-align: center;">
+            <p style="margin: 0 0 15px 0; font-weight: 600; color: #1a1a1a;">Lien de la consultation vidéo</p>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/meeting" style="display: inline-block; background: #c9a227; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
+              Rejoindre la réunion
+            </a>
+            <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">Ce lien sera actif au moment de votre rendez-vous confirmé</p>
+          </div>
+
           <p>À très bientôt,<br><strong>L'équipe AureLuz</strong></p>
 
           <div class="footer">
@@ -193,9 +201,14 @@ export async function sendAdminNotification(
             </div>
             ` : ''}
 
-            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/admin/appointments" class="cta">
-              Gérer dans le tableau de bord
-            </a>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/admin/appointments" class="cta">
+                Gérer dans le tableau de bord
+              </a>
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/meeting" class="cta" style="background: #166534;">
+                Lien réunion vidéo
+              </a>
+            </div>
           </div>
         </div>
       </body>
@@ -403,6 +416,14 @@ export async function sendStatusUpdate(
           ${isConfirmed ? `
             <p>Nous avons le plaisir de vous confirmer votre rendez-vous.</p>
             <p>Nous avons hâte de vous rencontrer pour discuter de votre projet.</p>
+
+            <div style="background: #dcfce7; border-radius: 12px; padding: 20px; margin: 25px 0; text-align: center;">
+              <p style="margin: 0 0 15px 0; font-weight: 600; color: #166534;">Rejoignez la consultation vidéo</p>
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/meeting" style="display: inline-block; background: #166534; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
+                Accéder à la réunion
+              </a>
+              <p style="margin: 15px 0 0 0; font-size: 12px; color: #166534;">Cliquez sur ce lien au moment de votre rendez-vous</p>
+            </div>
           ` : `
             <p>Nous sommes désolés, mais le créneau que vous aviez demandé n'est malheureusement plus disponible.</p>
             <p>N'hésitez pas à réserver un autre créneau sur notre site.</p>
