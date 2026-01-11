@@ -14,6 +14,7 @@ import {
   X,
   BarChart3,
   Mail,
+  FileText,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils/cn';
@@ -24,6 +25,7 @@ const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Analytiques', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Rendez-vous', href: '/admin/appointments', icon: Calendar },
+  { name: 'Devis', href: '/admin/devis', icon: FileText },
   { name: 'Témoignages', href: '/admin/testimonials', icon: MessageSquare },
   { name: 'Galerie', href: '/admin/gallery', icon: Image },
   { name: 'Mailing', href: '/admin/mailing', icon: Mail },

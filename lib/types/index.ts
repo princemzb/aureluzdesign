@@ -294,3 +294,55 @@ export interface RecentActivity {
   country?: string;
   device?: string;
 }
+
+// ============================================
+// Types Devis (Quotes)
+// ============================================
+
+export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired';
+
+export interface QuoteItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+}
+
+export interface Quote {
+  id: string;
+  quote_number: string;
+  client_name: string;
+  client_email: string;
+  client_phone: string | null;
+  event_date: string | null;
+  event_type: string | null;
+  items: QuoteItem[];
+  vat_rate: number;
+  subtotal: number;
+  vat_amount: number;
+  total: number;
+  notes: string | null;
+  validity_days: number;
+  status: QuoteStatus;
+  created_at: string;
+  updated_at: string;
+  sent_at: string | null;
+  expires_at: string | null;
+}
+
+export interface CreateQuoteInput {
+  client_name: string;
+  client_email: string;
+  client_phone?: string;
+  event_date?: string;
+  event_type?: string;
+  items: Omit<QuoteItem, 'id' | 'total'>[];
+  vat_rate: number;
+  notes?: string;
+  validity_days?: number;
+}
+
+export interface UpdateQuoteInput extends Partial<CreateQuoteInput> {
+  status?: QuoteStatus;
+}
