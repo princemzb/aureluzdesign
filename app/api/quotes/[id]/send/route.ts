@@ -361,6 +361,41 @@ async function generatePdfBuffer(quote: Awaited<ReturnType<typeof QuotesService.
   return Buffer.from(pdfBytes);
 }
 
+// Check if email is Gmail
+function isGmailAddress(email: string): boolean {
+  return email.toLowerCase().includes('@gmail.com');
+}
+
+// Convert plain text to HTML with clickable links
+function textToHtml(text: string): string {
+  // Escape HTML entities
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Convert URLs to clickable links
+  html = html.replace(
+    /(https?:\/\/[^\s]+)/g,
+    '<a href="$1" style="color: #c9a227; text-decoration: underline;">$1</a>'
+  );
+
+  // Convert line breaks to <br>
+  html = html.replace(/\n/g, '<br>');
+
+  return html;
+}
+
+// Remove URLs from text (for design version where we have buttons)
+function removeUrls(text: string): string {
+  return text
+    .replace(/Découvrez nos réalisations :\n?/g, '')
+    .replace(/- Site web : https?:\/\/[^\s]+\n?/g, '')
+    .replace(/- Instagram : https?:\/\/[^\s]+\n?/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export async function POST(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
@@ -370,113 +405,149 @@ export async function POST(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Devis non trouvé' }, { status: 404 });
     }
 
+    // Get custom subject and body from request
+    let customSubject: string | undefined;
+    let customBody: string | undefined;
+
+    try {
+      const body = await request.json();
+      customSubject = body.subject;
+      customBody = body.body;
+    } catch {
+      // No body provided, use defaults
+    }
+
     // Generate PDF
     const pdfBuffer = await generatePdfBuffer(quote);
 
-    // Format total for email
-    const formattedTotal = new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
-    }).format(quote.total);
+    // Use custom or default subject
+    const emailSubject = customSubject || `Votre devis ${quote.quote_number} - AureLuz Design`;
 
-    const validUntil = format(
-      addDays(parseISO(quote.created_at), quote.validity_days),
-      'dd MMMM yyyy',
-      { locale: fr }
-    );
+    // Check if Gmail for template selection
+    const isGmail = isGmailAddress(quote.client_email);
+
+    // For design version, remove URLs from body (we'll show buttons instead)
+    const bodyForDesign = customBody ? removeUrls(customBody) : customBody;
+
+    // Convert body to HTML
+    const emailBodyHtml = customBody
+      ? textToHtml(isGmail ? customBody : (bodyForDesign || customBody))
+      : `Bonjour ${quote.client_name},<br><br>
+         Merci pour votre intérêt pour nos services de décoration événementielle.<br><br>
+         Veuillez trouver ci-joint votre devis personnalisé <strong>${quote.quote_number}</strong>.`;
+
+    // Design template (non-Gmail) with buttons
+    const designTemplate = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #FDF8F3;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #FDF8F3; padding: 40px 20px;">
+          <tr>
+            <td align="center">
+              <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+
+                <!-- Header -->
+                <tr>
+                  <td style="padding: 40px 40px 20px; text-align: center; border-bottom: 2px solid #c9a227;">
+                    <img src="https://aureluzdesign.fr/images/aureluz-design-logo-decoration-evenementielle.png" alt="AureLuz Design" style="height: 60px; width: auto;" />
+                  </td>
+                </tr>
+
+                <!-- Content -->
+                <tr>
+                  <td style="padding: 40px;">
+                    <p style="color: #4a4a4a; font-size: 16px; line-height: 1.8; margin: 0 0 30px;">
+                      ${emailBodyHtml}
+                    </p>
+
+                    <!-- Buttons -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 30px;">
+                      <tr>
+                        <td align="center" style="padding-bottom: 15px;">
+                          <a href="https://aureluzdesign.fr/gallery" style="display: inline-block; background-color: #c9a227; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                            Découvrir nos réalisations
+                          </a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td align="center">
+                          <a href="https://instagram.com/aureluz_design" style="display: inline-block;">
+                            <img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" alt="Instagram" style="width: 40px; height: 40px;" />
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="padding: 30px 40px; background-color: #1a1a1a; border-radius: 0 0 12px 12px; text-align: center;">
+                    <p style="color: #c9a227; font-size: 14px; margin: 0 0 10px; font-weight: 600;">
+                      AureLuz Design - Décoration sur mesure
+                    </p>
+                    <p style="color: #999; font-size: 12px; margin: 0;">
+                      contact@aureluzdesign.fr | www.aureluzdesign.fr
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    // Simple template (Gmail) with text links
+    const gmailTemplate = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #FDF8F3;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px;">
+          <tr>
+            <td style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid #c9a227;">
+              <span style="font-size: 24px; font-weight: bold; color: #c9a227;">AureLuz Design</span>
+              <br>
+              <span style="font-size: 12px; color: #666;">Décoration sur mesure</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 30px 0;">
+              <p style="color: #333; font-size: 15px; line-height: 1.8; margin: 0;">
+                ${emailBodyHtml}
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
+              <p style="color: #666; font-size: 12px; margin: 0;">
+                AureLuz Design - Décoration sur mesure
+                <br>
+                contact@aureluzdesign.fr | www.aureluzdesign.fr
+              </p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
 
     // Send email with PDF attachment
     const { error } = await resend.emails.send({
       from: 'AureLuz Design <contact@aureluzdesign.fr>',
       to: quote.client_email,
-      subject: `Votre devis ${quote.quote_number} - AureLuz Design`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #FDF8F3;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #FDF8F3; padding: 40px 20px;">
-            <tr>
-              <td align="center">
-                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-
-                  <!-- Header -->
-                  <tr>
-                    <td style="padding: 40px 40px 20px; text-align: center; border-bottom: 2px solid #c9a227;">
-                      <img src="https://aureluzdesign.fr/images/aureluz-design-logo-decoration-evenementielle.png" alt="AureLuz Design" style="height: 60px; width: auto;" />
-                    </td>
-                  </tr>
-
-                  <!-- Content -->
-                  <tr>
-                    <td style="padding: 40px;">
-                      <h1 style="color: #1a1a1a; font-size: 24px; margin: 0 0 20px; font-weight: 600;">
-                        Bonjour ${quote.client_name},
-                      </h1>
-
-                      <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
-                        Merci pour votre intérêt pour nos services de décoration événementielle.
-                      </p>
-
-                      <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin: 0 0 30px;">
-                        Veuillez trouver ci-joint votre devis personnalisé <strong>${quote.quote_number}</strong>.
-                      </p>
-
-                      <!-- Quote Summary -->
-                      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f5f0; border-radius: 8px; margin-bottom: 30px;">
-                        <tr>
-                          <td style="padding: 25px;">
-                            <table width="100%" cellpadding="0" cellspacing="0">
-                              <tr>
-                                <td style="color: #666; font-size: 14px; padding-bottom: 10px;">Montant total TTC</td>
-                              </tr>
-                              <tr>
-                                <td style="color: #c9a227; font-size: 28px; font-weight: 700;">${formattedTotal}</td>
-                              </tr>
-                              <tr>
-                                <td style="color: #666; font-size: 13px; padding-top: 15px;">
-                                  Devis valable jusqu'au ${validUntil}
-                                </td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
-                      </table>
-
-                      <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin: 0 0 30px;">
-                        N'hésitez pas à me contacter si vous avez des questions ou souhaitez discuter de votre projet.
-                      </p>
-
-                      <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin: 0;">
-                        À très bientôt,<br/>
-                        <strong style="color: #c9a227;">Karine</strong><br/>
-                        <span style="color: #666; font-size: 14px;">AureLuz Design</span>
-                      </p>
-                    </td>
-                  </tr>
-
-                  <!-- Footer -->
-                  <tr>
-                    <td style="padding: 30px 40px; background-color: #1a1a1a; border-radius: 0 0 12px 12px; text-align: center;">
-                      <p style="color: #c9a227; font-size: 14px; margin: 0 0 10px; font-weight: 600;">
-                        AureLuz Design - Décoration sur mesure
-                      </p>
-                      <p style="color: #999; font-size: 12px; margin: 0;">
-                        contact@aureluzdesign.fr | www.aureluzdesign.fr
-                      </p>
-                    </td>
-                  </tr>
-
-                </table>
-              </td>
-            </tr>
-          </table>
-        </body>
-        </html>
-      `,
+      subject: emailSubject,
+      html: isGmail ? gmailTemplate : designTemplate,
       attachments: [
         {
           filename: `devis-${quote.quote_number}.pdf`,
