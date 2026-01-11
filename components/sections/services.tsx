@@ -2,19 +2,19 @@
 const services = [
   {
     emoji: '💍',
-    title: 'Prestation signature',
+    title: 'Mariage',
     description:
       'Bien plus qu\'une décoration, une signature visuelle complète. Nous concevons l\'ambiance de votre cérémonie et de votre réception dans les moindres détails (fleurs, mobilier, mise en scène). De la conception à la dépose le jour J, nous donnons vie à vos rêves pendant que vous profitez de vos invités.',
   },
   {
     emoji: '🎂',
-    title: 'Prestation instants précieux',
+    title: 'Événements spéciaux',
     description:
       'L\'art de transformer un simple repas en une expérience esthétique et mémorable. De l\'intimité d\'un dîner de fiançailles à la joie d\'une baby shower, en passant par vos anniversaires et EVJF chic, nous créons un écrin sur-mesure pour vos plus beaux souvenirs. Une ambiance élégante et conviviale, jusque dans les moindres détails.',
   },
   {
     emoji: '💡',
-    title: 'Coaching',
+    title: 'Accompagnement "Do It Yourself"',
     description:
       'L\'art de faire soi-même, avec l\'œil d\'une experte. Pour les mariés créatifs et les organisateurs qui souhaitent piloter leur décoration, nous vous offrons une boussole esthétique. Ensemble, nous définissons une vision cohérente et impactante pour donner vie à votre projet, avec l\'assurance d\'un résultat professionnel.',
   },

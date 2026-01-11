@@ -23,9 +23,9 @@ export const BUSINESS_CONFIG = {
 } as const;
 
 export const EVENT_TYPES = [
-  { value: 'signature', label: 'Prestation Signature' },
-  { value: 'instants', label: 'Prestation Instants Précieux' },
-  { value: 'coaching', label: 'Coaching' },
+  { value: 'signature', label: 'Mariage' },
+  { value: 'instants', label: 'Événements spéciaux' },
+  { value: 'coaching', label: 'Accompagnement "Do It Yourself"' },
 ] as const;
 
 export const APPOINTMENT_STATUSES = {
@@ -35,7 +35,7 @@ export const APPOINTMENT_STATUSES = {
 } as const;
 
 export const PHOTO_CATEGORIES = [
-  { value: 'signature', label: 'Prestation Signature' },
-  { value: 'instants', label: 'Prestation Instants Précieux' },
-  { value: 'coaching', label: 'Coaching' },
+  { value: 'signature', label: 'Mariage' },
+  { value: 'instants', label: 'Événements spéciaux' },
+  { value: 'coaching', label: 'Accompagnement "Do It Yourself"' },
 ] as const;
