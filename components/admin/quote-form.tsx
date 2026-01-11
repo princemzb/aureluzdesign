@@ -2,16 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import {
   Plus,
   Trash2,
   Save,
   Loader2,
   Eye,
-  Send,
-  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +23,7 @@ import {
 import { createQuote, updateQuote } from '@/lib/actions/quotes.actions';
 import { QuotePreview } from './quote-preview';
 import { EVENT_TYPES } from '@/lib/utils/constants';
-import type { Quote, QuoteItem } from '@/lib/types';
+import type { Quote } from '@/lib/types';
 
 interface QuoteFormProps {
   quote?: Quote;
@@ -256,7 +252,7 @@ export function QuoteForm({ quote, mode }: QuoteFormProps) {
             </div>
 
             <div className="space-y-3">
-              {items.map((item, index) => (
+              {items.map((item) => (
                 <div
                   key={item.id}
                   className="grid grid-cols-12 gap-2 items-start p-3 bg-secondary/30 rounded-lg"

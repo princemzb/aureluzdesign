@@ -59,7 +59,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         width: logoDims.width,
         height: logoDims.height,
       });
-    } catch (logoError) {
+    } catch {
       // If logo fails, just use text
       page.drawText('AureLuz Design', {
         x: margin,
@@ -189,7 +189,6 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     // Table header
     y -= 40;
-    const tableTop = y;
     const tableLeft = margin;
     const tableWidth = width - 2 * margin;
     const colWidths = [tableWidth * 0.5, tableWidth * 0.12, tableWidth * 0.19, tableWidth * 0.19];

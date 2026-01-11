@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Video, ExternalLink, Calendar, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Video, ExternalLink } from 'lucide-react';
 
 const GOOGLE_MEET_URL = 'https://meet.google.com/ikd-fjfa-ewb';
 
