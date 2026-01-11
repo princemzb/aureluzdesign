@@ -193,7 +193,7 @@ export async function sendAdminNotification(
             </div>
             ` : ''}
 
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/appointments" class="cta">
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/admin/appointments" class="cta">
               Gérer dans le tableau de bord
             </a>
           </div>
