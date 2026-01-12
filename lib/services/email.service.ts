@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { BookingFormData } from '@/lib/validators/booking.schema';
 import { EVENT_TYPES } from '@/lib/utils/constants';
+import { EmailTemplatesService, type EmailTemplateContent } from './email-templates.service';
 
 // Resend client - initialisation paresseuse pour éviter les erreurs au build
 let resendClient: Resend | null = null;
@@ -215,7 +216,16 @@ function isGmailAddress(email: string): boolean {
 }
 
 // Template design complet (pour non-Gmail) - fond crème
-function getSalonEmailTemplateDesign(name: string, bookingUrl: string): string {
+function getSalonEmailTemplateDesign(
+  name: string,
+  bookingUrl: string,
+  content: EmailTemplateContent
+): string {
+  const greeting = content.greeting.replace('{name}', name);
+  const paragraphsHtml = content.paragraphs
+    .map((p) => `<p class="message">${p}</p>`)
+    .join('\n');
+
   return `
     <!DOCTYPE html>
     <html>
@@ -249,39 +259,26 @@ function getSalonEmailTemplateDesign(name: string, bookingUrl: string): string {
           </div>
 
           <div class="content">
-            <p class="greeting">Bonjour ${name},</p>
+            <p class="greeting">${greeting}</p>
 
-            <p class="message">
-              C'était un réel plaisir de vous rencontrer lors du Salon du Mariage !
-            </p>
-
-            <p class="message">
-              J'espère que cette journée vous a inspiré pour votre futur événement.
-              Comme promis, je reviens vers vous pour vous accompagner dans la création
-              d'une décoration unique et à votre image.
-            </p>
-
-            <p class="message">
-              Je serais ravie d'échanger avec vous sur votre projet et de vous présenter
-              mes différentes prestations lors d'un rendez-vous personnalisé.
-            </p>
+            ${paragraphsHtml}
 
             <div class="cta-container">
               <a href="${bookingUrl}" class="cta">
-                Prendre rendez-vous
+                ${content.ctaText}
               </a>
             </div>
 
             <div class="social-hint" style="text-align: center;">
-              <p style="margin-bottom: 12px;">N'hésitez pas à me suivre sur Instagram pour découvrir mes dernières réalisations !</p>
+              <p style="margin-bottom: 12px;">${content.instagramText}</p>
               <a href="https://www.instagram.com/aure_luz_design/" style="display: inline-block;">
                 <img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" alt="Instagram" style="width: 32px; height: 32px;" />
               </a>
             </div>
 
             <div class="signature">
-              <p class="signature-name">Aurélie</p>
-              <p class="signature-title">Fondatrice d'AureLuz Design</p>
+              <p class="signature-name">${content.signatureName}</p>
+              <p class="signature-title">${content.signatureTitle}</p>
             </div>
           </div>
 
@@ -297,7 +294,14 @@ function getSalonEmailTemplateDesign(name: string, bookingUrl: string): string {
 }
 
 // Template simplifié pour Gmail (évite l'onglet Promotions)
-function getSalonEmailTemplateSimple(name: string, bookingUrl: string): string {
+function getSalonEmailTemplateSimple(
+  name: string,
+  bookingUrl: string,
+  content: EmailTemplateContent
+): string {
+  const greeting = content.greeting.replace('{name}', name);
+  const paragraphsHtml = content.paragraphs.map((p) => `<p>${p}</p>`).join('\n');
+
   return `
     <!DOCTYPE html>
     <html>
@@ -311,33 +315,48 @@ function getSalonEmailTemplateSimple(name: string, bookingUrl: string): string {
     </head>
     <body>
       <div class="container">
-        <p>Bonjour ${name},</p>
+        <p>${greeting}</p>
 
-        <p>C'était un réel plaisir de vous rencontrer lors du Salon du Mariage !</p>
+        ${paragraphsHtml}
 
-        <p>J'espère que cette journée vous a inspiré pour votre futur événement. Comme promis, je reviens vers vous pour vous accompagner dans la création d'une décoration unique et à votre image.</p>
+        <p><strong>→ ${content.ctaText} :</strong> <a href="${bookingUrl}">${bookingUrl}</a></p>
 
-        <p>Je serais ravie d'échanger avec vous sur votre projet et de vous présenter mes différentes prestations lors d'un rendez-vous personnalisé.</p>
-
-        <p><strong>→ Prendre rendez-vous :</strong> <a href="${bookingUrl}">${bookingUrl}</a></p>
-
-        <p>N'hésitez pas à me suivre sur Instagram pour découvrir mes dernières réalisations : <a href="https://www.instagram.com/aure_luz_design/">@aure_luz_design</a></p>
+        <p>${content.instagramText} <a href="https://www.instagram.com/aure_luz_design/">@aure_luz_design</a></p>
 
         <p>À très bientôt,</p>
-        <p><strong>Aurélie</strong><br>
-        <em>Fondatrice d'AureLuz Design</em></p>
+        <p><strong>${content.signatureName}</strong><br>
+        <em>${content.signatureTitle}</em></p>
       </div>
     </body>
     </html>
   `;
 }
 
+// Default content fallback
+const DEFAULT_TEMPLATE_CONTENT: EmailTemplateContent = {
+  greeting: 'Bonjour {name},',
+  paragraphs: [
+    "C'était un réel plaisir de vous rencontrer lors du Salon du Mariage !",
+    "J'espère que cette journée vous a inspiré pour votre futur événement. Comme promis, je reviens vers vous pour vous accompagner dans la création d'une décoration unique et à votre image.",
+    "Je serais ravie d'échanger avec vous sur votre projet et de vous présenter mes différentes prestations lors d'un rendez-vous personnalisé.",
+  ],
+  ctaText: 'Prendre rendez-vous',
+  instagramText: "N'hésitez pas à me suivre sur Instagram pour découvrir mes dernières réalisations !",
+  signatureName: 'Aurélie',
+  signatureTitle: "Fondatrice d'AureLuz Design",
+};
+
 // Export des templates pour la prévisualisation
-export function getSalonEmailPreview(name: string, isGmail: boolean): string {
+export async function getSalonEmailPreview(name: string, isGmail: boolean): Promise<string> {
   const bookingUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/booking`;
+
+  // Fetch template from database
+  const template = await EmailTemplatesService.getSalonTemplate();
+  const content = template?.content || DEFAULT_TEMPLATE_CONTENT;
+
   return isGmail
-    ? getSalonEmailTemplateSimple(name, bookingUrl)
-    : getSalonEmailTemplateDesign(name, bookingUrl);
+    ? getSalonEmailTemplateSimple(name, bookingUrl, content)
+    : getSalonEmailTemplateDesign(name, bookingUrl, content);
 }
 
 // Email campagne salon du mariage
@@ -347,14 +366,19 @@ export async function sendSalonCampaignEmail(
 ): Promise<{ success: boolean; error?: string }> {
   const bookingUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/booking`;
 
+  // Fetch template from database
+  const template = await EmailTemplatesService.getSalonTemplate();
+  const content = template?.content || DEFAULT_TEMPLATE_CONTENT;
+  const subject = template?.subject || 'Suite à notre rencontre au Salon du Mariage - AureLuz';
+
   // Choisir le template selon le type d'email
   const html = isGmailAddress(to)
-    ? getSalonEmailTemplateSimple(name, bookingUrl)
-    : getSalonEmailTemplateDesign(name, bookingUrl);
+    ? getSalonEmailTemplateSimple(name, bookingUrl, content)
+    : getSalonEmailTemplateDesign(name, bookingUrl, content);
 
   return sendEmail({
     to,
-    subject: 'Suite à notre rencontre au Salon du Mariage - AureLuz',
+    subject,
     html,
   });
 }
