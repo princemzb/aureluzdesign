@@ -1,20 +1,26 @@
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { LogoProvider } from '@/components/providers/logo-provider';
-import { getLogo } from '@/lib/actions/settings.actions';
+import { ContactProvider } from '@/components/providers/contact-provider';
+import { getLogo, getContactSettings } from '@/lib/actions/settings.actions';
 
 export default async function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const logoUrl = await getLogo();
+  const [logoUrl, contactSettings] = await Promise.all([
+    getLogo(),
+    getContactSettings(),
+  ]);
 
   return (
     <LogoProvider logoUrl={logoUrl}>
-      <Header />
-      <main className="min-h-screen pt-[73px]">{children}</main>
-      <Footer />
+      <ContactProvider contact={contactSettings}>
+        <Header />
+        <main className="min-h-screen pt-[73px]">{children}</main>
+        <Footer />
+      </ContactProvider>
     </LogoProvider>
   );
 }

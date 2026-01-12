@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { SettingsService } from '@/lib/services/settings.service';
+import { SettingsService, type ContactSettings } from '@/lib/services/settings.service';
 
 export async function getLogo(): Promise<string> {
   return SettingsService.getLogo();
@@ -44,6 +44,25 @@ export async function setLogoUrl(
   const success = await SettingsService.setLogo(url);
 
   if (success) {
+    revalidatePath('/', 'layout');
+    revalidatePath('/admin', 'layout');
+  }
+
+  return { success, error: success ? undefined : 'Erreur lors de la mise à jour' };
+}
+
+// Contact settings actions
+export async function getContactSettings(): Promise<ContactSettings> {
+  return SettingsService.getContactSettings();
+}
+
+export async function updateContactSettings(
+  settings: ContactSettings
+): Promise<{ success: boolean; error?: string }> {
+  const success = await SettingsService.updateContactSettings(settings);
+
+  if (success) {
+    // Revalidate all pages that use contact info
     revalidatePath('/', 'layout');
     revalidatePath('/admin', 'layout');
   }

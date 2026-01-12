@@ -4,6 +4,7 @@ import { fr } from 'date-fns/locale';
 import type { BookingFormData } from '@/lib/validators/booking.schema';
 import { EVENT_TYPES } from '@/lib/utils/constants';
 import { EmailTemplatesService, type EmailTemplateContent } from './email-templates.service';
+import { SettingsService } from './settings.service';
 
 // Resend client - initialisation paresseuse pour éviter les erreurs au build
 let resendClient: Resend | null = null;
@@ -15,9 +16,20 @@ function getResendClient(): Resend {
   return resendClient;
 }
 
-// Email expéditeur (domaine vérifié sur Resend)
-const FROM_EMAIL = 'AureLuz Design <contact@aureluzdesign.fr>';
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'aureluzdesign@gmail.com';
+// Get dynamic email settings
+async function getEmailSettings() {
+  const contactSettings = await SettingsService.getContactSettings();
+  return {
+    fromEmail: `AureLuz Design <${contactSettings.email}>`,
+    adminEmail: contactSettings.adminEmail,
+    instagram: contactSettings.instagram,
+  };
+}
+
+// Fallback values
+const DEFAULT_FROM_EMAIL = 'AureLuz Design <contact@aureluzdesign.fr>';
+const DEFAULT_ADMIN_EMAIL = 'aureluzdesign@gmail.com';
+const DEFAULT_INSTAGRAM = 'https://www.instagram.com/aure_luz_design/';
 
 function getEventTypeLabel(type: string): string {
   return EVENT_TYPES.find((t) => t.value === type)?.label || type;
@@ -34,16 +46,20 @@ async function sendEmail({
   to,
   subject,
   html,
+  fromEmail,
 }: {
   to: string;
   subject: string;
   html: string;
+  fromEmail?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     console.log(`📧 Envoi email à ${to}...`);
 
+    const from = fromEmail || DEFAULT_FROM_EMAIL;
+
     const { data, error } = await getResendClient().emails.send({
-      from: FROM_EMAIL,
+      from,
       to,
       subject,
       html,
@@ -67,10 +83,12 @@ export async function sendBookingConfirmation(
 ): Promise<{ success: boolean; error?: string }> {
   const appointmentDate = formatAppointmentDate(data.date, data.start_time);
   const eventTypeLabel = getEventTypeLabel(data.event_type);
+  const emailSettings = await getEmailSettings();
 
   return sendEmail({
     to: data.client_email,
     subject: 'Confirmation de votre demande de rendez-vous - AureLuz',
+    fromEmail: emailSettings.fromEmail,
     html: `
       <!DOCTYPE html>
       <html>
@@ -139,10 +157,12 @@ export async function sendAdminNotification(
 ): Promise<{ success: boolean; error?: string }> {
   const appointmentDate = formatAppointmentDate(data.date, data.start_time);
   const eventTypeLabel = getEventTypeLabel(data.event_type);
+  const emailSettings = await getEmailSettings();
 
   return sendEmail({
-    to: ADMIN_EMAIL,
+    to: emailSettings.adminEmail || DEFAULT_ADMIN_EMAIL,
     subject: `Nouvelle demande de RDV - ${data.client_name}`,
+    fromEmail: emailSettings.fromEmail,
     html: `
       <!DOCTYPE html>
       <html>
@@ -219,7 +239,8 @@ function isGmailAddress(email: string): boolean {
 function getSalonEmailTemplateDesign(
   name: string,
   bookingUrl: string,
-  content: EmailTemplateContent
+  content: EmailTemplateContent,
+  instagramUrl: string
 ): string {
   const greeting = content.greeting.replace('{name}', name);
   const paragraphsHtml = content.paragraphs
@@ -271,7 +292,7 @@ function getSalonEmailTemplateDesign(
 
             <div class="social-hint" style="text-align: center;">
               <p style="margin-bottom: 12px;">${content.instagramText}</p>
-              <a href="https://www.instagram.com/aure_luz_design/" style="display: inline-block;">
+              <a href="${instagramUrl}" style="display: inline-block;">
                 <img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" alt="Instagram" style="width: 32px; height: 32px;" />
               </a>
             </div>
@@ -297,7 +318,8 @@ function getSalonEmailTemplateDesign(
 function getSalonEmailTemplateSimple(
   name: string,
   bookingUrl: string,
-  content: EmailTemplateContent
+  content: EmailTemplateContent,
+  instagramUrl: string
 ): string {
   const greeting = content.greeting.replace('{name}', name);
   const paragraphsHtml = content.paragraphs.map((p) => `<p>${p}</p>`).join('\n');
@@ -321,7 +343,7 @@ function getSalonEmailTemplateSimple(
 
         <p><strong>→ ${content.ctaText} :</strong> <a href="${bookingUrl}">${bookingUrl}</a></p>
 
-        <p>${content.instagramText} <a href="https://www.instagram.com/aure_luz_design/">@aure_luz_design</a></p>
+        <p>${content.instagramText} <a href="${instagramUrl}">Instagram</a></p>
 
         <p>À très bientôt,</p>
         <p><strong>${content.signatureName}</strong><br>
@@ -350,13 +372,17 @@ const DEFAULT_TEMPLATE_CONTENT: EmailTemplateContent = {
 export async function getSalonEmailPreview(name: string, isGmail: boolean): Promise<string> {
   const bookingUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/booking`;
 
-  // Fetch template from database
-  const template = await EmailTemplatesService.getSalonTemplate();
+  // Fetch template and settings from database
+  const [template, emailSettings] = await Promise.all([
+    EmailTemplatesService.getSalonTemplate(),
+    getEmailSettings(),
+  ]);
   const content = template?.content || DEFAULT_TEMPLATE_CONTENT;
+  const instagramUrl = emailSettings.instagram || DEFAULT_INSTAGRAM;
 
   return isGmail
-    ? getSalonEmailTemplateSimple(name, bookingUrl, content)
-    : getSalonEmailTemplateDesign(name, bookingUrl, content);
+    ? getSalonEmailTemplateSimple(name, bookingUrl, content, instagramUrl)
+    : getSalonEmailTemplateDesign(name, bookingUrl, content, instagramUrl);
 }
 
 // Email campagne salon du mariage
@@ -366,20 +392,25 @@ export async function sendSalonCampaignEmail(
 ): Promise<{ success: boolean; error?: string }> {
   const bookingUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/booking`;
 
-  // Fetch template from database
-  const template = await EmailTemplatesService.getSalonTemplate();
+  // Fetch template and settings from database
+  const [template, emailSettings] = await Promise.all([
+    EmailTemplatesService.getSalonTemplate(),
+    getEmailSettings(),
+  ]);
   const content = template?.content || DEFAULT_TEMPLATE_CONTENT;
   const subject = template?.subject || 'Suite à notre rencontre au Salon du Mariage - AureLuz';
+  const instagramUrl = emailSettings.instagram || DEFAULT_INSTAGRAM;
 
   // Choisir le template selon le type d'email
   const html = isGmailAddress(to)
-    ? getSalonEmailTemplateSimple(name, bookingUrl, content)
-    : getSalonEmailTemplateDesign(name, bookingUrl, content);
+    ? getSalonEmailTemplateSimple(name, bookingUrl, content, instagramUrl)
+    : getSalonEmailTemplateDesign(name, bookingUrl, content, instagramUrl);
 
   return sendEmail({
     to,
     subject,
     html,
+    fromEmail: emailSettings.fromEmail,
   });
 }
 
@@ -392,6 +423,7 @@ export async function sendStatusUpdate(
 ): Promise<{ success: boolean; error?: string }> {
   const appointmentDate = formatAppointmentDate(date, time);
   const isConfirmed = status === 'confirmed';
+  const emailSettings = await getEmailSettings();
 
   // Format date as dd/mm/yyyy
   const d = parseISO(date);
@@ -399,6 +431,7 @@ export async function sendStatusUpdate(
 
   return sendEmail({
     to: clientEmail,
+    fromEmail: emailSettings.fromEmail,
     subject: isConfirmed
       ? 'Votre rendez-vous est confirmé - AureLuz'
       : 'Information sur votre demande de rendez-vous - AureLuz',

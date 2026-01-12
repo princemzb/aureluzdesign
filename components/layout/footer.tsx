@@ -2,26 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Instagram, Mail, Phone } from 'lucide-react';
+import { Instagram, Mail, Phone, Facebook, Linkedin } from 'lucide-react';
 import { useLogo } from '@/components/providers/logo-provider';
-
-const socialLinks = [
-  {
-    name: 'Instagram',
-    href: 'https://www.instagram.com/aure_luz_design/',
-    icon: Instagram,
-  },
-  {
-    name: 'Email',
-    href: 'mailto:contact@aureluzdesign.fr',
-    icon: Mail,
-  },
-  {
-    name: 'Téléphone',
-    href: 'tel:+33661434365',
-    icon: Phone,
-  },
-];
+import { useContact } from '@/components/providers/contact-provider';
 
 const legalLinks = [
   { name: 'Mentions légales', href: '/mentions-legales' },
@@ -31,6 +14,41 @@ const legalLinks = [
 export function Footer() {
   const currentYear = new Date().getFullYear();
   const logoUrl = useLogo();
+  const contact = useContact();
+
+  // Build social links with defaults for empty values
+  const socialLinks = [
+    {
+      name: 'Instagram',
+      href: contact.instagram || 'https://www.instagram.com',
+      icon: Instagram,
+      external: true,
+    },
+    {
+      name: 'Facebook',
+      href: contact.facebook || 'https://www.facebook.com',
+      icon: Facebook,
+      external: true,
+    },
+    {
+      name: 'LinkedIn',
+      href: contact.linkedin || 'https://www.linkedin.com',
+      icon: Linkedin,
+      external: true,
+    },
+    {
+      name: 'Email',
+      href: `mailto:${contact.email}`,
+      icon: Mail,
+      external: false,
+    },
+    {
+      name: 'Téléphone',
+      href: `tel:${contact.phone}`,
+      icon: Phone,
+      external: false,
+    },
+  ];
 
   return (
     <footer className="bg-foreground text-background">
@@ -52,8 +70,8 @@ export function Footer() {
             <a
               key={link.name}
               href={link.href}
-              target={link.name === 'Instagram' ? '_blank' : undefined}
-              rel={link.name === 'Instagram' ? 'noopener noreferrer' : undefined}
+              target={link.external ? '_blank' : undefined}
+              rel={link.external ? 'noopener noreferrer' : undefined}
               className="flex items-center gap-2 text-background/70 hover:text-background transition-colors"
             >
               <link.icon className="h-4 w-4" />
