@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button';
 import { submitTestimonial } from '@/lib/actions/testimonials.actions';
 import { EVENT_TYPES } from '@/lib/utils/constants';
 import { cn } from '@/lib/utils/cn';
+import { usePreview } from '@/components/providers/preview-provider';
 
 export function TestimonialForm() {
+  const isPreview = usePreview();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -195,8 +197,8 @@ export function TestimonialForm() {
       {/* Submit */}
       <Button
         type="submit"
-        className="w-full"
-        disabled={isSubmitting}
+        className={cn('w-full', isPreview && 'cursor-default opacity-80')}
+        disabled={isSubmitting || isPreview}
       >
         {isSubmitting ? (
           <>

@@ -7,6 +7,7 @@ import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button';
 import { useLogo } from '@/components/providers/logo-provider';
+import { usePreview } from '@/components/providers/preview-provider';
 
 const navigation = [
   { name: 'Accueil', href: '/' },
@@ -19,40 +20,69 @@ const navigation = [
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const logoUrl = useLogo();
+  const isPreview = usePreview();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border">
       <nav className="container-main flex items-center justify-between py-2">
         {/* Logo */}
-        <Link href="/" className="flex items-center">
-          <Image
-            src={logoUrl}
-            alt="Aureluz Design - Décoration événementielle sur mesure"
-            width={300}
-            height={120}
-            className="h-24 w-auto"
-            priority
-          />
-        </Link>
+        {isPreview ? (
+          <span className="flex items-center cursor-default">
+            <Image
+              src={logoUrl}
+              alt="Aureluz Design - Décoration événementielle sur mesure"
+              width={300}
+              height={120}
+              className="h-24 w-auto"
+              priority
+            />
+          </span>
+        ) : (
+          <Link href="/" className="flex items-center">
+            <Image
+              src={logoUrl}
+              alt="Aureluz Design - Décoration événementielle sur mesure"
+              width={300}
+              height={120}
+              className="h-24 w-auto"
+              priority
+            />
+          </Link>
+        )}
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-8">
-          {navigation.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {item.name}
-            </Link>
-          ))}
+          {navigation.map((item) =>
+            isPreview ? (
+              <span
+                key={item.name}
+                className="text-sm font-medium text-muted-foreground cursor-default"
+              >
+                {item.name}
+              </span>
+            ) : (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {item.name}
+              </Link>
+            )
+          )}
         </div>
 
         {/* CTA Button */}
         <div className="hidden md:block">
-          <Button asChild size="lg">
-            <Link href="/booking">Réserver</Link>
-          </Button>
+          {isPreview ? (
+            <Button size="lg" className="cursor-default opacity-80">
+              Réserver
+            </Button>
+          ) : (
+            <Button asChild size="lg">
+              <Link href="/booking">Réserver</Link>
+            </Button>
+          )}
         </div>
 
         {/* Mobile menu button */}
@@ -78,21 +108,36 @@ export function Header() {
         )}
       >
         <div className="container-main py-4 space-y-4 border-t border-border/50">
-          {navigation.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className="block text-base font-medium text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {item.name}
-            </Link>
-          ))}
-          <Button asChild className="w-full" size="lg">
-            <Link href="/booking" onClick={() => setMobileMenuOpen(false)}>
+          {navigation.map((item) =>
+            isPreview ? (
+              <span
+                key={item.name}
+                className="block text-base font-medium text-muted-foreground cursor-default"
+              >
+                {item.name}
+              </span>
+            ) : (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="block text-base font-medium text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {item.name}
+              </Link>
+            )
+          )}
+          {isPreview ? (
+            <Button className="w-full cursor-default opacity-80" size="lg">
               Réserver une consultation
-            </Link>
-          </Button>
+            </Button>
+          ) : (
+            <Button asChild className="w-full" size="lg">
+              <Link href="/booking" onClick={() => setMobileMenuOpen(false)}>
+                Réserver une consultation
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>

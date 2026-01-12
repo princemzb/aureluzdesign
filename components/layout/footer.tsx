@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Instagram, Mail, Phone, Facebook, Linkedin } from 'lucide-react';
 import { useLogo } from '@/components/providers/logo-provider';
 import { useContact } from '@/components/providers/contact-provider';
+import { usePreview } from '@/components/providers/preview-provider';
 
 const legalLinks = [
   { name: 'Mentions légales', href: '/mentions-legales' },
@@ -15,6 +16,7 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
   const logoUrl = useLogo();
   const contact = useContact();
+  const isPreview = usePreview();
 
   // Build social links with defaults for empty values
   const socialLinks = [
@@ -66,31 +68,50 @@ export function Footer() {
 
         {/* Liens en ligne */}
         <div className="flex flex-col md:flex-row justify-center items-center gap-3 md:gap-6 mb-3">
-          {socialLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              target={link.external ? '_blank' : undefined}
-              rel={link.external ? 'noopener noreferrer' : undefined}
-              className="flex items-center gap-2 text-background/70 hover:text-background transition-colors"
-            >
-              <link.icon className="h-4 w-4" />
-              <span className="text-sm">{link.name}</span>
-            </a>
-          ))}
+          {socialLinks.map((link) =>
+            isPreview ? (
+              <span
+                key={link.name}
+                className="flex items-center gap-2 text-background/70 cursor-default"
+              >
+                <link.icon className="h-4 w-4" />
+                <span className="text-sm">{link.name}</span>
+              </span>
+            ) : (
+              <a
+                key={link.name}
+                href={link.href}
+                target={link.external ? '_blank' : undefined}
+                rel={link.external ? 'noopener noreferrer' : undefined}
+                className="flex items-center gap-2 text-background/70 hover:text-background transition-colors"
+              >
+                <link.icon className="h-4 w-4" />
+                <span className="text-sm">{link.name}</span>
+              </a>
+            )
+          )}
         </div>
 
         {/* Liens légaux */}
         <div className="flex justify-center gap-4 mb-3">
-          {legalLinks.map((link) => (
-            <Link
-              key={link.name}
-              href={link.href}
-              className="text-sm text-background/50 hover:text-background transition-colors"
-            >
-              {link.name}
-            </Link>
-          ))}
+          {legalLinks.map((link) =>
+            isPreview ? (
+              <span
+                key={link.name}
+                className="text-sm text-background/50 cursor-default"
+              >
+                {link.name}
+              </span>
+            ) : (
+              <Link
+                key={link.name}
+                href={link.href}
+                className="text-sm text-background/50 hover:text-background transition-colors"
+              >
+                {link.name}
+              </Link>
+            )
+          )}
         </div>
 
         {/* Copyright */}

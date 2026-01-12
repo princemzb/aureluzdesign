@@ -1,8 +1,12 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Calendar, ArrowRight } from 'lucide-react';
+import { usePreview } from '@/components/providers/preview-provider';
 
 export function ContactCTASection() {
+  const isPreview = usePreview();
   return (
     <section className="section-padding bg-foreground text-background">
       <div className="container-main">
@@ -25,16 +29,26 @@ export function ContactCTASection() {
 
           {/* CTA Button */}
           <div className="pt-4">
-            <Button
-              asChild
-              size="xl"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <Link href="/booking">
+            {isPreview ? (
+              <Button
+                size="xl"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground cursor-default opacity-80"
+              >
                 Réserver ma consultation
                 <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
+              </Button>
+            ) : (
+              <Button
+                asChild
+                size="xl"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <Link href="/booking">
+                  Réserver ma consultation
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>

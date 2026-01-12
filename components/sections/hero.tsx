@@ -1,8 +1,12 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
+import { usePreview } from '@/components/providers/preview-provider';
 
 export function HeroSection() {
+  const isPreview = usePreview();
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
       {/* Background gradient */}
@@ -34,15 +38,28 @@ export function HeroSection() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <Button asChild size="xl">
-              <Link href="/booking">
+            {isPreview ? (
+              <Button size="xl" className="cursor-default opacity-80">
                 Réserver une consultation
                 <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="xl">
-              <Link href="/#portfolio">Découvrir nos réalisations</Link>
-            </Button>
+              </Button>
+            ) : (
+              <Button asChild size="xl">
+                <Link href="/booking">
+                  Réserver une consultation
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+            )}
+            {isPreview ? (
+              <Button variant="outline" size="xl" className="cursor-default opacity-80">
+                Découvrir nos réalisations
+              </Button>
+            ) : (
+              <Button asChild variant="outline" size="xl">
+                <Link href="/#portfolio">Découvrir nos réalisations</Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>

@@ -1,8 +1,12 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { usePreview } from '@/components/providers/preview-provider';
 
 export function AboutSection() {
+  const isPreview = usePreview();
   return (
     <section id="about" className="section-padding">
       <div className="container-main">
@@ -52,9 +56,15 @@ export function AboutSection() {
             </div>
 
             <div className="pt-4">
-              <Button asChild size="lg">
-                <Link href="/booking">Planifier une rencontre</Link>
-              </Button>
+              {isPreview ? (
+                <Button size="lg" className="cursor-default opacity-80">
+                  Planifier une rencontre
+                </Button>
+              ) : (
+                <Button asChild size="lg">
+                  <Link href="/booking">Planifier une rencontre</Link>
+                </Button>
+              )}
             </div>
           </div>
         </div>
