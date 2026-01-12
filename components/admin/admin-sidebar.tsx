@@ -21,6 +21,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/lib/actions/auth.actions';
+import { useLogo } from '@/components/providers/logo-provider';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -37,6 +38,7 @@ const navigation = [
 export function AdminSidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const logoUrl = useLogo();
 
   const handleLogout = async () => {
     await logout();
@@ -48,7 +50,7 @@ export function AdminSidebar() {
       <div className="p-4 border-b border-border">
         <Link href="/admin" className="flex items-center gap-2">
           <NextImage
-            src="/images/aureluz-design-logo-decoration-evenementielle.png"
+            src={logoUrl}
             alt="Aureluz Design - Administration"
             width={360}
             height={144}

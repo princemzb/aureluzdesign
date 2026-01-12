@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button';
+import { useLogo } from '@/components/providers/logo-provider';
 
 const navigation = [
   { name: 'Accueil', href: '/' },
@@ -17,6 +18,7 @@ const navigation = [
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const logoUrl = useLogo();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border">
@@ -24,7 +26,7 @@ export function Header() {
         {/* Logo */}
         <Link href="/" className="flex items-center">
           <Image
-            src="/images/aureluz-design-logo-decoration-evenementielle.png"
+            src={logoUrl}
             alt="Aureluz Design - Décoration événementielle sur mesure"
             width={300}
             height={120}

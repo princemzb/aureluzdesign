@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Video, ExternalLink } from 'lucide-react';
+import { getLogo } from '@/lib/actions/settings.actions';
 
 const GOOGLE_MEET_URL = 'https://meet.google.com/ikd-fjfa-ewb';
 
@@ -10,7 +11,9 @@ export const metadata = {
   robots: 'noindex, nofollow', // Page non indexée par les moteurs de recherche
 };
 
-export default function MeetingPage() {
+export default async function MeetingPage() {
+  const logoUrl = await getLogo();
+
   return (
     <div className="min-h-screen bg-[#FDF8F3] flex flex-col">
       {/* Header */}
@@ -18,7 +21,7 @@ export default function MeetingPage() {
         <div className="container mx-auto px-4">
           <Link href="/">
             <Image
-              src="/images/aureluz-design-logo-decoration-evenementielle.png"
+              src={logoUrl}
               alt="AureLuz Design"
               width={180}
               height={72}

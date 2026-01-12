@@ -1,6 +1,9 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Instagram, Mail, Phone } from 'lucide-react';
+import { useLogo } from '@/components/providers/logo-provider';
 
 const socialLinks = [
   {
@@ -27,6 +30,7 @@ const legalLinks = [
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const logoUrl = useLogo();
 
   return (
     <footer className="bg-foreground text-background">
@@ -34,7 +38,7 @@ export function Footer() {
         {/* Logo centré */}
         <div className="flex justify-center mb-3">
           <Image
-            src="/images/aureluz-design-logo-decoration-evenementielle.png"
+            src={logoUrl}
             alt="Aureluz Design - Décoration événementielle sur mesure"
             width={400}
             height={160}

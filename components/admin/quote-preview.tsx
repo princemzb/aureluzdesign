@@ -5,6 +5,7 @@ import { fr } from 'date-fns/locale';
 import Image from 'next/image';
 import type { Quote } from '@/lib/types';
 import { EVENT_TYPES } from '@/lib/utils/constants';
+import { useLogo } from '@/components/providers/logo-provider';
 
 interface QuotePreviewProps {
   quote: Quote;
@@ -12,6 +13,7 @@ interface QuotePreviewProps {
 }
 
 export function QuotePreview({ quote, forPdf = false }: QuotePreviewProps) {
+  const logoUrl = useLogo();
   const createdDate = quote.created_at
     ? format(parseISO(quote.created_at), 'dd MMMM yyyy', { locale: fr })
     : format(new Date(), 'dd MMMM yyyy', { locale: fr });
@@ -46,13 +48,13 @@ export function QuotePreview({ quote, forPdf = false }: QuotePreviewProps) {
             // Pour le PDF, on utilise une URL absolue
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src="/images/aureluz-design-logo-decoration-evenementielle.png"
+              src={logoUrl}
               alt="AureLuz Design"
               style={{ height: '80px', width: 'auto' }}
             />
           ) : (
             <Image
-              src="/images/aureluz-design-logo-decoration-evenementielle.png"
+              src={logoUrl}
               alt="AureLuz Design"
               width={200}
               height={80}
