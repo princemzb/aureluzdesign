@@ -15,6 +15,7 @@ import {
   BarChart3,
   Mail,
   FileText,
+  Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils/cn';
@@ -28,6 +29,7 @@ const navigation = [
   { name: 'Devis', href: '/admin/devis', icon: FileText },
   { name: 'Témoignages', href: '/admin/testimonials', icon: MessageSquare },
   { name: 'Galerie', href: '/admin/gallery', icon: Image },
+  { name: 'Services', href: '/admin/services', icon: Sparkles },
   { name: 'Mailing', href: '/admin/mailing', icon: Mail },
   { name: 'Paramètres', href: '/admin/settings', icon: Settings },
 ];

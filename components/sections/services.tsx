@@ -1,26 +1,23 @@
+import { getActiveServices } from '@/lib/actions/services.actions';
 
-const services = [
-  {
-    emoji: '💍',
-    title: 'Mariage',
-    description:
-      'Bien plus qu\'une décoration, une signature visuelle complète. Nous concevons l\'ambiance de votre cérémonie et de votre réception dans les moindres détails (fleurs, mobilier, mise en scène). De la conception à la dépose le jour J, nous donnons vie à vos rêves pendant que vous profitez de vos invités.',
-  },
-  {
-    emoji: '🎂',
-    title: 'Événements spéciaux',
-    description:
-      'L\'art de transformer un simple repas en une expérience esthétique et mémorable. De l\'intimité d\'un dîner de fiançailles à la joie d\'une baby shower, en passant par vos anniversaires et EVJF chic, nous créons un écrin sur-mesure pour vos plus beaux souvenirs. Une ambiance élégante et conviviale, jusque dans les moindres détails.',
-  },
-  {
-    emoji: '💡',
-    title: 'Accompagnement "Do It Yourself"',
-    description:
-      'L\'art de faire soi-même, avec l\'œil d\'une experte. Pour les mariés créatifs et les organisateurs qui souhaitent piloter leur décoration, nous vous offrons une boussole esthétique. Ensemble, nous définissons une vision cohérente et impactante pour donner vie à votre projet, avec l\'assurance d\'un résultat professionnel.',
-  },
-];
+export async function ServicesSection() {
+  const services = await getActiveServices();
 
-export function ServicesSection() {
+  // Fallback to default services if database is empty
+  const displayServices = services.length > 0 ? services : [
+    {
+      id: '1',
+      emoji: '💍',
+      title: 'Mariage',
+      description:
+        'Bien plus qu\'une décoration, une signature visuelle complète. Nous concevons l\'ambiance de votre cérémonie et de votre réception dans les moindres détails.',
+      display_order: 1,
+      is_active: true,
+      created_at: '',
+      updated_at: '',
+    },
+  ];
+
   return (
     <section id="services" className="section-padding bg-secondary/30">
       <div className="container-main">
@@ -40,10 +37,18 @@ export function ServicesSection() {
         </div>
 
         {/* Services grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {services.map((service, index) => (
+        <div
+          className={`grid grid-cols-1 gap-8 ${
+            displayServices.length === 1
+              ? 'max-w-md mx-auto'
+              : displayServices.length === 2
+              ? 'md:grid-cols-2 max-w-3xl mx-auto'
+              : 'md:grid-cols-3'
+          }`}
+        >
+          {displayServices.map((service, index) => (
             <div
-              key={service.title}
+              key={service.id}
               className="group bg-background rounded-2xl p-8 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
               style={{ animationDelay: `${index * 100}ms` }}
             >

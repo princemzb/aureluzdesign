@@ -346,3 +346,34 @@ export interface CreateQuoteInput {
 export interface UpdateQuoteInput extends Partial<CreateQuoteInput> {
   status?: QuoteStatus;
 }
+
+// ============================================
+// Types Services (Configurable service cards)
+// ============================================
+
+export interface Service {
+  id: string;
+  emoji: string;
+  title: string;
+  description: string;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateServiceInput {
+  emoji: string;
+  title: string;
+  description: string;
+  display_order?: number;
+  is_active?: boolean;
+}
+
+export interface UpdateServiceInput {
+  emoji?: string;
+  title?: string;
+  description?: string;
+  display_order?: number;
+  is_active?: boolean;
+}
