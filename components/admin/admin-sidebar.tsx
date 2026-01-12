@@ -14,6 +14,7 @@ import {
   Mail,
   FileText,
   Globe,
+  Eye,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils/cn';
@@ -27,6 +28,7 @@ const navigation = [
   { name: 'Rendez-vous', href: '/admin/appointments', icon: Calendar },
   { name: 'Devis', href: '/admin/devis', icon: FileText },
   { name: 'Gestion site', href: '/admin/site', icon: Globe },
+  { name: 'Aperçu site', href: '/admin/preview', icon: Eye },
   { name: 'Mailing', href: '/admin/mailing', icon: Mail },
   { name: 'Paramètres', href: '/admin/settings', icon: Settings },
 ];
