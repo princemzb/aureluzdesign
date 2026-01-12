@@ -6,8 +6,6 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Calendar,
-  Image,
-  MessageSquare,
   Settings,
   LogOut,
   Menu,
@@ -15,7 +13,7 @@ import {
   BarChart3,
   Mail,
   FileText,
-  Sparkles,
+  Globe,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils/cn';
@@ -28,9 +26,7 @@ const navigation = [
   { name: 'Analytiques', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Rendez-vous', href: '/admin/appointments', icon: Calendar },
   { name: 'Devis', href: '/admin/devis', icon: FileText },
-  { name: 'Témoignages', href: '/admin/testimonials', icon: MessageSquare },
-  { name: 'Galerie', href: '/admin/gallery', icon: Image },
-  { name: 'Services', href: '/admin/services', icon: Sparkles },
+  { name: 'Gestion site', href: '/admin/site', icon: Globe },
   { name: 'Mailing', href: '/admin/mailing', icon: Mail },
   { name: 'Paramètres', href: '/admin/settings', icon: Settings },
 ];
