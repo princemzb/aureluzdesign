@@ -1,0 +1,29 @@
+# Instructions pour Claude Code
+
+## Commits Git
+
+- Ne JAMAIS ajouter de ligne "Co-Authored-By" dans les messages de commit
+- Utiliser le français pour les messages de commit
+- Préfixes: feat:, fix:, docs:, refactor:, chore:
+
+## Documentation
+
+Après chaque développement ou modification de fonctionnalité :
+
+1. **ARCHITECTURE.md** : Mettre à jour si la modification impacte l'architecture globale
+   - Nouvelles tables/migrations
+   - Nouveaux services ou providers
+   - Changements de flux de données
+
+2. **docs/*.md** : Mettre à jour ou créer la doc technique de la feature
+   - Si nouvelle feature → créer `docs/nom-feature-system.md`
+   - Si modification → mettre à jour le fichier existant
+   - Mettre à jour `docs/README.md` si nouveau fichier créé
+
+Structure d'une doc technique :
+- Vue d'ensemble
+- Architecture (diagramme ASCII)
+- Fichiers impliqués
+- Concepts clés avec exemples de code
+- Points d'extension
+- Maintenance
