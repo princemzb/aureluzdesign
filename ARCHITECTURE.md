@@ -1,8 +1,10 @@
-# Architecture Logicielle - AureLuz
+# Architecture Logicielle - AureLuz Design
 
-**Version :** 1.0
-**Date :** Janvier 2026
-**Projet :** Site Vitrine avec Système de Réservation
+**Version :** 2.0
+**Dernière mise à jour :** Janvier 2026
+**Projet :** Site Vitrine avec Système de Réservation et Back-Office Complet
+
+> Ce document est à la fois une référence technique et un guide pédagogique. Chaque concept est illustré par des exemples concrets tirés du code de l'application.
 
 ---
 
@@ -12,140 +14,162 @@
 2. [Stack Technique](#2-stack-technique)
 3. [Architecture Système](#3-architecture-système)
 4. [Structure du Projet](#4-structure-du-projet)
-5. [Modèles de Données](#5-modèles-de-données)
-6. [Architecture des Composants](#6-architecture-des-composants)
-7. [Spécification des APIs](#7-spécification-des-apis)
+5. [Concepts Fondamentaux](#5-concepts-fondamentaux)
+6. [Modèle de Données](#6-modèle-de-données)
+7. [Patterns d'Architecture](#7-patterns-darchitecture)
 8. [Flux de Données](#8-flux-de-données)
-9. [Authentification & Sécurité](#9-authentification--sécurité)
-10. [Performance & Optimisation](#10-performance--optimisation)
-11. [Stratégie de Déploiement](#11-stratégie-de-déploiement)
-12. [Plan d'Implémentation](#12-plan-dimplémentation)
+9. [Système d'Authentification](#9-système-dauthentification)
+10. [Système d'Analytics](#10-système-danalytics)
+11. [Système d'Emails](#11-système-demails)
+12. [Bonnes Pratiques](#12-bonnes-pratiques)
+13. [Référence des Fichiers](#13-référence-des-fichiers)
 
 ---
 
 ## 1. Vue d'Ensemble
 
-### 1.1 Objectifs Architecturaux
+### 1.1 Description du Projet
 
-| Objectif | Description |
-|----------|-------------|
-| **Simplicité** | Architecture minimaliste adaptée à un site vitrine |
-| **Performance** | Temps de chargement < 2s, LCP < 2.5s |
-| **Maintenabilité** | Code modulaire, séparation des responsabilités |
-| **Scalabilité** | Capable de gérer une croissance modérée |
-| **SEO** | Rendu côté serveur pour un référencement optimal |
+AureLuz Design est une application web complète pour une entreprise de décoration événementielle. Elle comprend :
 
-### 1.2 Diagramme d'Architecture Haut Niveau
+- **Site vitrine public** : Présentation des services, portfolio, témoignages
+- **Système de réservation** : Prise de rendez-vous avec calendrier et créneaux
+- **Back-office administrateur** : Gestion complète de l'activité
+- **Système d'analytics** : Suivi des visiteurs et conversions (RGPD-compliant)
+- **Système de devis** : Création et envoi de devis PDF
+- **Campagnes email** : Envoi d'emails marketing personnalisés
+
+### 1.2 Objectifs Architecturaux
+
+| Objectif | Description | Comment c'est atteint |
+|----------|-------------|----------------------|
+| **Performance** | Temps de chargement < 2s | Server Components, CDN Vercel, optimisation images |
+| **SEO** | Référencement optimal | SSR, métadonnées dynamiques, sitemap.xml |
+| **Maintenabilité** | Code modulaire | Séparation services/actions/components |
+| **Sécurité** | Protection des données | RLS Supabase, validation Zod, middleware auth |
+| **Évolutivité** | Facilité d'ajout de features | Architecture en couches, providers React |
+
+### 1.3 Diagramme d'Architecture Haut Niveau
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                              CLIENTS                                     │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐             │
-│    │   Visiteur   │    │   Aurélie    │    │    Mobile    │             │
-│    │   (Browser)  │    │   (Admin)    │    │   (Browser)  │             │
-│    └──────┬───────┘    └──────┬───────┘    └──────┬───────┘             │
-│           │                   │                   │                      │
-└───────────┼───────────────────┼───────────────────┼──────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              CLIENTS                                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐                 │
+│    │   Visiteur   │    │    Admin     │    │    Mobile    │                 │
+│    │   (Public)   │    │  (Aurélie)   │    │  (Responsive)│                 │
+│    └──────┬───────┘    └──────┬───────┘    └──────┬───────┘                 │
+│           │                   │                   │                          │
+└───────────┼───────────────────┼───────────────────┼──────────────────────────┘
             │                   │                   │
             └───────────────────┼───────────────────┘
                                 │
                          ┌──────▼──────┐
                          │   Vercel    │
-                         │   (CDN)     │
+                         │  Edge CDN   │
                          └──────┬──────┘
                                 │
-┌───────────────────────────────┼──────────────────────────────────────────┐
-│                         NEXT.JS APP                                       │
-├───────────────────────────────┼──────────────────────────────────────────┤
-│                               │                                           │
-│    ┌──────────────────────────┼──────────────────────────────┐           │
-│    │                    APP ROUTER                            │           │
-│    │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │           │
-│    │  │    Pages    │  │     API     │  │   Middleware    │  │           │
-│    │  │   (RSC)     │  │   Routes    │  │   (Auth/CORS)   │  │           │
-│    │  └─────────────┘  └─────────────┘  └─────────────────┘  │           │
-│    └─────────────────────────────────────────────────────────┘           │
-│                               │                                           │
-│    ┌──────────────────────────┼──────────────────────────────┐           │
-│    │                   SERVICES LAYER                         │           │
-│    │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │           │
-│    │  │  Booking    │  │   Gallery   │  │      Email      │  │           │
-│    │  │  Service    │  │   Service   │  │     Service     │  │           │
-│    │  └─────────────┘  └─────────────┘  └─────────────────┘  │           │
-│    └─────────────────────────────────────────────────────────┘           │
-│                                                                           │
-└───────────────────────────────┬──────────────────────────────────────────┘
+┌───────────────────────────────┼──────────────────────────────────────────────┐
+│                         NEXT.JS 15 APP                                        │
+├───────────────────────────────┼──────────────────────────────────────────────┤
+│                               │                                               │
+│    ┌──────────────────────────┼──────────────────────────────┐               │
+│    │                    APP ROUTER                            │               │
+│    │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │               │
+│    │  │   Pages     │  │     API     │  │   Middleware    │  │               │
+│    │  │ (RSC + RCC) │  │   Routes    │  │   (Auth/CORS)   │  │               │
+│    │  └──────┬──────┘  └──────┬──────┘  └────────┬────────┘  │               │
+│    └─────────┼────────────────┼──────────────────┼───────────┘               │
+│              │                │                  │                            │
+│    ┌─────────▼────────────────▼──────────────────▼───────────┐               │
+│    │                   SERVER ACTIONS                         │               │
+│    │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │               │
+│    │  │   Booking   │  │   Gallery   │  │    Analytics    │  │               │
+│    │  │   Actions   │  │   Actions   │  │     Actions     │  │               │
+│    │  └──────┬──────┘  └──────┬──────┘  └────────┬────────┘  │               │
+│    └─────────┼────────────────┼──────────────────┼───────────┘               │
+│              │                │                  │                            │
+│    ┌─────────▼────────────────▼──────────────────▼───────────┐               │
+│    │                   SERVICES LAYER                         │               │
+│    │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────────────┐│               │
+│    │  │ Email   │ │ Gallery │ │ Quotes  │ │    Settings     ││               │
+│    │  │ Service │ │ Service │ │ Service │ │    Service      ││               │
+│    │  └─────────┘ └─────────┘ └─────────┘ └─────────────────┘│               │
+│    └─────────────────────────────────────────────────────────┘               │
+│                                                                               │
+└───────────────────────────────┬──────────────────────────────────────────────┘
                                 │
-┌───────────────────────────────┼──────────────────────────────────────────┐
-│                         SUPABASE                                          │
-├───────────────────────────────┼──────────────────────────────────────────┤
-│                               │                                           │
-│    ┌─────────────┐    ┌───────┴───────┐    ┌─────────────┐               │
-│    │    Auth     │    │   PostgreSQL  │    │   Storage   │               │
-│    │  (Admin)    │    │   (Database)  │    │   (Images)  │               │
-│    └─────────────┘    └───────────────┘    └─────────────┘               │
-│                                                                           │
-└───────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────┼──────────────────────────────────────────────┐
+│                         SUPABASE                                              │
+├───────────────────────────────┼──────────────────────────────────────────────┤
+│    ┌─────────────┐    ┌───────┴───────┐    ┌─────────────┐                   │
+│    │    Auth     │    │   PostgreSQL  │    │   Storage   │                   │
+│    │  (Admin)    │    │  (12 tables)  │    │  (Photos)   │                   │
+│    └─────────────┘    └───────────────┘    └─────────────┘                   │
+└───────────────────────────────────────────────────────────────────────────────┘
                                 │
-                         ┌──────▼──────┐
-                         │   Resend    │
-                         │   (Email)   │
-                         └─────────────┘
+              ┌─────────────────┼─────────────────┐
+              │                 │                 │
+       ┌──────▼──────┐   ┌──────▼──────┐   ┌──────▼──────┐
+       │   Resend    │   │   ip-api    │   │  pdf-lib    │
+       │   (Email)   │   │  (Geo IP)   │   │   (PDF)     │
+       └─────────────┘   └─────────────┘   └─────────────┘
 ```
 
 ---
 
 ## 2. Stack Technique
 
-### 2.1 Choix Technologiques
+### 2.1 Choix Technologiques et Justifications
 
-| Couche | Technologie | Version | Justification |
-|--------|-------------|---------|---------------|
-| **Framework** | Next.js (App Router) | 15.x | SSR/SSG, optimisation images, API routes intégrées |
-| **Langage** | TypeScript | 5.x | Typage fort, meilleure maintenabilité |
-| **Styling** | Tailwind CSS | 3.x | Utility-first, design system cohérent |
-| **UI Components** | shadcn/ui | latest | Composants accessibles, personnalisables |
-| **Icônes** | Lucide React | latest | Icônes légères et cohérentes |
-| **Base de données** | Supabase (PostgreSQL) | - | BaaS complet, Auth + DB + Storage |
-| **ORM** | Supabase Client | latest | Intégration native, RLS |
-| **Email** | Resend | latest | API moderne, fiable, templates React |
-| **Validation** | Zod | 3.x | Validation runtime type-safe |
-| **Forms** | React Hook Form | 7.x | Performance, validation intégrée |
-| **Date/Time** | date-fns | 3.x | Légère, immutable, tree-shakable |
-| **Hosting** | Vercel | - | Intégration Next.js native, CDN global |
+| Technologie | Usage | Pourquoi ce choix ? |
+|-------------|-------|---------------------|
+| **Next.js 15** | Framework React | App Router, Server Components, Server Actions intégrés |
+| **TypeScript** | Langage | Typage fort = moins de bugs, meilleure autocomplétion |
+| **Tailwind CSS** | Styling | Utility-first, design system cohérent, responsive facile |
+| **Supabase** | Backend | PostgreSQL + Auth + Storage en un seul service |
+| **Resend** | Emails | API moderne, templates React, bon deliverability |
+| **Zod** | Validation | Validation runtime type-safe, messages d'erreur français |
+| **date-fns** | Dates | Légère, immutable, support français natif |
+| **pdf-lib** | PDF | Génération côté serveur sans dépendances lourdes |
+| **Vercel** | Hébergement | Intégration Next.js native, CDN global, preview deploys |
 
-### 2.2 Dépendances Principales
+### 2.2 Concept Pédagogique : Pourquoi Supabase ?
 
-```json
-{
-  "dependencies": {
-    "next": "^15.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "@supabase/supabase-js": "^2.39.0",
-    "@supabase/ssr": "^0.1.0",
-    "tailwindcss": "^3.4.0",
-    "lucide-react": "^0.300.0",
-    "zod": "^3.22.0",
-    "react-hook-form": "^7.49.0",
-    "@hookform/resolvers": "^3.3.0",
-    "date-fns": "^3.0.0",
-    "resend": "^2.1.0",
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.1.0",
-    "tailwind-merge": "^2.2.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.3.0",
-    "@types/react": "^18.2.0",
-    "@types/node": "^20.10.0",
-    "eslint": "^8.56.0",
-    "eslint-config-next": "^15.0.0",
-    "prettier": "^3.2.0",
-    "prettier-plugin-tailwindcss": "^0.5.0"
-  }
+> **Supabase** est un "Backend as a Service" (BaaS) qui fournit :
+>
+> 1. **PostgreSQL** : Base de données relationnelle puissante
+> 2. **Auth** : Système d'authentification complet
+> 3. **Storage** : Stockage de fichiers (images, PDF)
+> 4. **RLS** : Row Level Security pour la sécurité au niveau des lignes
+>
+> **Avantage** : On n'a pas besoin de créer un backend séparé. Tout est géré par Supabase, et Next.js communique directement avec lui via le client JavaScript.
+
+```typescript
+// Exemple : Connexion à Supabase (lib/supabase/server.ts)
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+
+export async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
 }
 ```
 
@@ -153,1416 +177,462 @@
 
 ## 3. Architecture Système
 
-### 3.1 Patterns Architecturaux
+### 3.1 Pattern Architectural : Layered Architecture
 
-#### Pattern Principal : **Feature-Sliced Architecture (Simplifié)**
+L'application suit une architecture en couches avec séparation claire des responsabilités :
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        PRESENTATION                          │
+│                    COUCHE PRÉSENTATION                       │
 │  ┌─────────────────────────────────────────────────────────┐│
 │  │  Pages (app/)  →  Components (components/)              ││
+│  │  • Server Components (données)                          ││
+│  │  • Client Components (interactivité)                    ││
 │  └─────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                         BUSINESS                             │
+│                    COUCHE MÉTIER                             │
 │  ┌─────────────────────────────────────────────────────────┐│
-│  │  Services (lib/services/)  →  Actions (lib/actions/)    ││
+│  │  Actions (lib/actions/)  →  Services (lib/services/)    ││
+│  │  • Validation des données                               ││
+│  │  • Logique métier                                       ││
+│  │  • Orchestration                                        ││
 │  └─────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                           DATA                               │
+│                    COUCHE DONNÉES                            │
 │  ┌─────────────────────────────────────────────────────────┐│
-│  │  Supabase Client  →  Database  →  Storage               ││
+│  │  Supabase Client  →  PostgreSQL  →  Storage             ││
+│  │  • Requêtes SQL                                         ││
+│  │  • Gestion des fichiers                                 ││
 │  └─────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 3.2 Séparation des Responsabilités
+### 3.2 Concept Pédagogique : Server Components vs Client Components
 
-| Couche | Responsabilité | Exemples |
-|--------|----------------|----------|
-| **Pages** | Routing, Layout, Data Fetching (RSC) | `app/page.tsx`, `app/admin/page.tsx` |
-| **Components** | UI réutilisable, présentation | `Calendar`, `GalleryGrid`, `BookingForm` |
-| **Services** | Logique métier, accès données | `BookingService`, `GalleryService` |
-| **Actions** | Server Actions (mutations) | `createAppointment`, `uploadPhoto` |
-| **Lib** | Utilitaires, configurations | `supabase.ts`, `utils.ts`, `validators.ts` |
+Next.js 15 introduit deux types de composants React :
+
+#### Server Components (par défaut)
+- Exécutés sur le serveur uniquement
+- Peuvent accéder directement à la base de données
+- Ne peuvent pas utiliser `useState`, `useEffect`, ou les événements
+- Meilleur pour le SEO et les performances
+
+```typescript
+// Exemple : Server Component (app/(public)/page.tsx)
+// Pas de 'use client' = Server Component par défaut
+
+import { getPhotos } from '@/lib/actions/gallery.actions';
+
+export default async function HomePage() {
+  // On peut appeler directement une fonction async
+  const photos = await getPhotos();
+
+  return (
+    <main>
+      <PortfolioSection photos={photos} />
+    </main>
+  );
+}
+```
+
+#### Client Components
+- Exécutés sur le client (navigateur)
+- Peuvent utiliser les hooks React (`useState`, `useEffect`)
+- Nécessaires pour l'interactivité (clics, formulaires)
+
+```typescript
+// Exemple : Client Component (components/booking/booking-calendar.tsx)
+'use client';  // ← Directive obligatoire
+
+import { useState } from 'react';
+
+export function BookingCalendar() {
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  return (
+    <div onClick={() => setSelectedDate(new Date())}>
+      {/* Interactivité possible */}
+    </div>
+  );
+}
+```
+
+### 3.3 Concept Pédagogique : Server Actions
+
+Les Server Actions sont des fonctions exécutées sur le serveur, appelables depuis le client :
+
+```typescript
+// lib/actions/booking.actions.ts
+'use server';  // ← Directive obligatoire
+
+import { revalidatePath } from 'next/cache';
+
+export async function createAppointment(formData: FormData) {
+  // 1. Extraire les données du formulaire
+  const data = {
+    client_name: formData.get('client_name') as string,
+    client_email: formData.get('client_email') as string,
+    // ...
+  };
+
+  // 2. Valider avec Zod
+  const validated = bookingSchema.parse(data);
+
+  // 3. Insérer en base de données
+  const supabase = await createClient();
+  const { data: appointment, error } = await supabase
+    .from('appointments')
+    .insert(validated)
+    .select()
+    .single();
+
+  // 4. Invalider le cache pour rafraîchir les données
+  revalidatePath('/admin/appointments');
+
+  return { success: true, appointment };
+}
+```
+
+**Utilisation dans un formulaire :**
+
+```typescript
+// components/booking/booking-form.tsx
+'use client';
+
+import { createAppointment } from '@/lib/actions/booking.actions';
+
+export function BookingForm() {
+  return (
+    <form action={createAppointment}>
+      <input name="client_name" required />
+      <input name="client_email" type="email" required />
+      <button type="submit">Réserver</button>
+    </form>
+  );
+}
+```
 
 ---
 
 ## 4. Structure du Projet
 
+### 4.1 Arborescence Complète
+
 ```
 aureluz/
 ├── app/                              # Next.js App Router
-│   ├── (public)/                     # Route group - pages publiques
+│   ├── (public)/                     # Route Group - Pages publiques
 │   │   ├── page.tsx                  # Page d'accueil
-│   │   ├── booking/
-│   │   │   └── page.tsx              # Page de réservation
-│   │   └── layout.tsx                # Layout public (header/footer)
+│   │   ├── booking/page.tsx          # Système de réservation
+│   │   ├── meeting/page.tsx          # Lien visioconférence
+│   │   └── layout.tsx                # Layout avec Header/Footer
 │   │
-│   ├── (admin)/                      # Route group - backoffice
+│   ├── (admin)/                      # Route Group - Back-office
 │   │   ├── admin/
-│   │   │   ├── page.tsx              # Dashboard admin
-│   │   │   ├── appointments/
-│   │   │   │   └── page.tsx          # Gestion des RDV
-│   │   │   ├── gallery/
-│   │   │   │   └── page.tsx          # Gestion des photos
-│   │   │   └── settings/
-│   │   │       └── page.tsx          # Paramètres
-│   │   ├── login/
-│   │   │   └── page.tsx              # Page de connexion
-│   │   └── layout.tsx                # Layout admin (sidebar)
+│   │   │   ├── page.tsx              # Dashboard
+│   │   │   ├── appointments/         # Gestion des RDV
+│   │   │   │   ├── page.tsx          # Liste des RDV
+│   │   │   │   └── [id]/page.tsx     # Détail d'un RDV
+│   │   │   ├── devis/                # Gestion des devis
+│   │   │   │   ├── page.tsx          # Liste des devis
+│   │   │   │   ├── nouveau/page.tsx  # Nouveau devis
+│   │   │   │   └── [id]/             # Détail/modification
+│   │   │   ├── analytics/page.tsx    # Tableau de bord analytics
+│   │   │   ├── site/page.tsx         # Gestion du contenu
+│   │   │   ├── preview/page.tsx      # Aperçu du site
+│   │   │   ├── mailing/page.tsx      # Campagnes email
+│   │   │   ├── settings/page.tsx     # Paramètres
+│   │   │   └── layout.tsx            # Layout admin (sidebar)
+│   │   └── login/page.tsx            # Connexion admin
 │   │
-│   ├── api/                          # API Routes (si nécessaire)
-│   │   └── webhook/
-│   │       └── route.ts              # Webhooks externes
+│   ├── api/                          # API Routes
+│   │   ├── analytics/track/route.ts  # Tracking analytics
+│   │   └── quotes/[id]/
+│   │       ├── pdf/route.ts          # Génération PDF
+│   │       └── send/route.ts         # Envoi par email
 │   │
 │   ├── layout.tsx                    # Root layout
-│   ├── globals.css                   # Styles globaux Tailwind
-│   ├── loading.tsx                   # Loading state global
-│   ├── error.tsx                     # Error boundary global
-│   └── not-found.tsx                 # Page 404
+│   ├── error.tsx                     # Error boundary
+│   ├── not-found.tsx                 # Page 404
+│   ├── robots.ts                     # SEO robots.txt
+│   └── sitemap.ts                    # SEO sitemap.xml
 │
 ├── components/                       # Composants React
-│   ├── ui/                           # shadcn/ui components
+│   ├── ui/                           # Composants UI de base
 │   │   ├── button.tsx
-│   │   ├── calendar.tsx
-│   │   ├── card.tsx
-│   │   ├── dialog.tsx
-│   │   ├── form.tsx
 │   │   ├── input.tsx
-│   │   ├── select.tsx
-│   │   ├── toast.tsx
 │   │   └── ...
 │   │
 │   ├── layout/                       # Composants de mise en page
-│   │   ├── header.tsx
-│   │   ├── footer.tsx
-│   │   ├── nav.tsx
-│   │   └── admin-sidebar.tsx
+│   │   ├── header.tsx                # Navigation publique
+│   │   └── footer.tsx                # Pied de page
 │   │
-│   ├── sections/                     # Sections de page
-│   │   ├── hero.tsx
-│   │   ├── services.tsx
-│   │   ├── about.tsx
-│   │   └── contact-cta.tsx
+│   ├── sections/                     # Sections de la page d'accueil
+│   │   ├── hero.tsx                  # Bannière principale
+│   │   ├── services.tsx              # Grille des services
+│   │   ├── portfolio.tsx             # Galerie photos
+│   │   ├── about.tsx                 # À propos
+│   │   ├── testimonials.tsx          # Témoignages
+│   │   └── contact-cta.tsx           # Call-to-action
 │   │
-│   ├── booking/                      # Feature: Réservation
-│   │   ├── booking-calendar.tsx
-│   │   ├── time-slots.tsx
-│   │   ├── booking-form.tsx
-│   │   └── booking-confirmation.tsx
+│   ├── booking/                      # Système de réservation
+│   │   ├── booking-wizard.tsx        # Conteneur multi-étapes
+│   │   ├── booking-calendar.tsx      # Sélection de date
+│   │   ├── time-slots.tsx            # Sélection d'heure
+│   │   ├── booking-form.tsx          # Formulaire client
+│   │   └── booking-confirmation.tsx  # Confirmation
 │   │
-│   ├── gallery/                      # Feature: Galerie
-│   │   ├── gallery-grid.tsx
-│   │   ├── gallery-filter.tsx
-│   │   ├── gallery-modal.tsx
-│   │   └── photo-upload.tsx
+│   ├── admin/                        # Composants admin
+│   │   ├── admin-sidebar.tsx         # Navigation latérale
+│   │   ├── stats-cards.tsx           # Cartes statistiques
+│   │   ├── appointments-table.tsx    # Table des RDV
+│   │   ├── quote-form.tsx            # Formulaire devis
+│   │   ├── gallery-manager.tsx       # Gestion galerie
+│   │   ├── services-manager.tsx      # Gestion services
+│   │   ├── preview-wrapper.tsx       # Aperçu responsive
+│   │   └── ...
 │   │
-│   └── admin/                        # Feature: Administration
-│       ├── appointments-table.tsx
-│       ├── appointment-card.tsx
-│       ├── stats-cards.tsx
-│       └── blocked-slots-manager.tsx
+│   ├── analytics/                    # Composants analytics
+│   │   ├── tracker.tsx               # Script de tracking
+│   │   ├── analytics-overview.tsx    # Vue d'ensemble
+│   │   ├── visitors-chart.tsx        # Graphique visiteurs
+│   │   ├── conversion-funnel.tsx     # Entonnoir conversion
+│   │   └── ...
+│   │
+│   ├── providers/                    # Context Providers
+│   │   ├── logo-provider.tsx         # Contexte du logo
+│   │   ├── contact-provider.tsx      # Contexte contact
+│   │   └── preview-provider.tsx      # Mode aperçu
+│   │
+│   └── testimonials/                 # Témoignages
+│       ├── testimonial-form.tsx      # Formulaire soumission
+│       └── testimonial-form-toggle.tsx
 │
-├── lib/                              # Logique métier et utilitaires
-│   ├── supabase/
-│   │   ├── client.ts                 # Client browser
-│   │   ├── server.ts                 # Client server (RSC)
-│   │   ├── middleware.ts             # Client middleware
-│   │   └── admin.ts                  # Client admin (service role)
+├── lib/                              # Logique métier
+│   ├── supabase/                     # Clients Supabase
+│   │   ├── client.ts                 # Client navigateur
+│   │   ├── server.ts                 # Client serveur
+│   │   └── middleware.ts             # Client middleware
 │   │
-│   ├── services/
-│   │   ├── booking.service.ts        # Logique de réservation
-│   │   ├── gallery.service.ts        # Logique de galerie
-│   │   └── email.service.ts          # Envoi d'emails
+│   ├── services/                     # Services métier
+│   │   ├── email.service.ts          # Envoi d'emails
+│   │   ├── gallery.service.ts        # Gestion photos
+│   │   ├── quotes.service.ts         # Gestion devis
+│   │   ├── settings.service.ts       # Paramètres site
+│   │   ├── site-services.service.ts  # Services configurables
+│   │   ├── email-templates.service.ts # Templates email
+│   │   └── geolocation.service.ts    # Géolocalisation IP
 │   │
 │   ├── actions/                      # Server Actions
-│   │   ├── booking.actions.ts
-│   │   ├── gallery.actions.ts
-│   │   └── admin.actions.ts
+│   │   ├── auth.actions.ts           # Authentification
+│   │   ├── booking.actions.ts        # Réservations
+│   │   ├── admin.actions.ts          # Administration
+│   │   ├── gallery.actions.ts        # Galerie
+│   │   ├── quotes.actions.ts         # Devis
+│   │   ├── analytics.actions.ts      # Analytics
+│   │   ├── services.actions.ts       # Services
+│   │   ├── settings.actions.ts       # Paramètres
+│   │   ├── testimonials.actions.ts   # Témoignages
+│   │   ├── mailing.actions.ts        # Campagnes email
+│   │   └── email-templates.actions.ts
 │   │
-│   ├── validators/
-│   │   ├── booking.schema.ts         # Schemas Zod
-│   │   └── gallery.schema.ts
+│   ├── validators/                   # Schémas de validation
+│   │   └── booking.schema.ts         # Validation réservation
 │   │
-│   ├── utils/
-│   │   ├── date.ts                   # Utilitaires date/heure
-│   │   ├── cn.ts                     # className merger
-│   │   └── constants.ts              # Constantes globales
+│   ├── utils/                        # Utilitaires
+│   │   ├── cn.ts                     # Fusion classes CSS
+│   │   ├── date.ts                   # Manipulation dates
+│   │   └── constants.ts              # Constantes métier
 │   │
-│   └── types/
-│       ├── database.types.ts         # Types Supabase générés
-│       ├── booking.types.ts
-│       └── gallery.types.ts
-│
-├── emails/                           # Templates email (React Email)
-│   ├── booking-confirmation.tsx
-│   ├── booking-notification.tsx
-│   └── booking-status-update.tsx
-│
-├── public/                           # Assets statiques
-│   ├── logo.svg
-│   ├── og-image.jpg
-│   └── fonts/
-│       └── ...
+│   └── types/                        # Types TypeScript
+│       └── index.ts                  # Tous les types
 │
 ├── supabase/                         # Configuration Supabase
-│   ├── migrations/                   # Migrations SQL
-│   │   ├── 001_create_appointments.sql
-│   │   ├── 002_create_blocked_slots.sql
-│   │   └── 003_create_photos.sql
-│   ├── seed.sql                      # Données initiales
-│   └── config.toml                   # Config locale
+│   └── migrations/                   # Migrations SQL
+│       ├── 001_create_appointments.sql
+│       ├── 002_create_blocked_slots.sql
+│       ├── 003_create_photos.sql
+│       ├── 004_create_business_hours.sql
+│       ├── 005_create_storage_bucket.sql
+│       ├── 006_create_analytics.sql
+│       ├── 007_create_quotes.sql
+│       ├── 008_create_services.sql
+│       ├── 009_create_site_settings.sql
+│       ├── 010_create_email_templates.sql
+│       ├── 011_add_contact_settings.sql
+│       └── 20240106000000_create_testimonials.sql
 │
-├── .env.local                        # Variables d'environnement
-├── .env.example                      # Template env
-├── next.config.js                    # Config Next.js
-├── tailwind.config.ts                # Config Tailwind
-├── tsconfig.json                     # Config TypeScript
-├── components.json                   # Config shadcn/ui
-└── package.json
-```
-
----
-
-## 5. Modèles de Données
-
-### 5.1 Diagramme Entité-Relation
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          DATABASE SCHEMA                                 │
-└─────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────┐       ┌──────────────────────┐
-│    appointments      │       │    blocked_slots     │
-├──────────────────────┤       ├──────────────────────┤
-│ id: uuid [PK]        │       │ id: uuid [PK]        │
-│ client_name: varchar │       │ date: date           │
-│ client_email: varchar│       │ start_time: time     │
-│ client_phone: varchar│       │ end_time: time       │
-│ date: date           │       │ reason: varchar?     │
-│ start_time: time     │       │ created_at: timestamp│
-│ end_time: time       │       └──────────────────────┘
-│ event_type: enum     │
-│ message: text?       │       ┌──────────────────────┐
-│ status: enum         │       │       photos         │
-│ created_at: timestamp│       ├──────────────────────┤
-│ updated_at: timestamp│       │ id: uuid [PK]        │
-└──────────────────────┘       │ url: varchar         │
-                               │ alt: varchar         │
-                               │ category: enum       │
-                               │ order: integer       │
-                               │ created_at: timestamp│
-                               └──────────────────────┘
-
-┌──────────────────────┐
-│   business_hours     │
-├──────────────────────┤
-│ id: uuid [PK]        │
-│ day_of_week: integer │  (0=Dimanche, 1=Lundi, etc.)
-│ open_time: time      │
-│ close_time: time     │
-│ is_open: boolean     │
-└──────────────────────┘
-```
-
-### 5.2 Migrations SQL
-
-#### Migration 001: Table appointments
-
-```sql
--- supabase/migrations/001_create_appointments.sql
-
--- Enum pour le type d'événement
-CREATE TYPE event_type AS ENUM ('mariage', 'table', 'autre');
-
--- Enum pour le statut
-CREATE TYPE appointment_status AS ENUM ('pending', 'confirmed', 'cancelled');
-
--- Table des rendez-vous
-CREATE TABLE appointments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    client_name VARCHAR(100) NOT NULL,
-    client_email VARCHAR(255) NOT NULL,
-    client_phone VARCHAR(20) NOT NULL,
-    date DATE NOT NULL,
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
-    event_type event_type NOT NULL,
-    message TEXT,
-    status appointment_status DEFAULT 'pending',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-
-    -- Contraintes
-    CONSTRAINT valid_time_range CHECK (end_time > start_time),
-    CONSTRAINT valid_date CHECK (date >= CURRENT_DATE),
-    CONSTRAINT unique_slot UNIQUE (date, start_time)
-);
-
--- Index pour les requêtes fréquentes
-CREATE INDEX idx_appointments_date ON appointments(date);
-CREATE INDEX idx_appointments_status ON appointments(status);
-CREATE INDEX idx_appointments_date_status ON appointments(date, status);
-
--- Trigger pour updated_at
-CREATE OR REPLACE FUNCTION update_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER appointments_updated_at
-    BEFORE UPDATE ON appointments
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at();
-
--- RLS (Row Level Security)
-ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
-
--- Politique: Tout le monde peut créer un RDV
-CREATE POLICY "Anyone can create appointments" ON appointments
-    FOR INSERT WITH CHECK (true);
-
--- Politique: Seul admin peut lire tous les RDV
-CREATE POLICY "Admin can read all appointments" ON appointments
-    FOR SELECT USING (auth.role() = 'authenticated');
-
--- Politique: Seul admin peut modifier
-CREATE POLICY "Admin can update appointments" ON appointments
-    FOR UPDATE USING (auth.role() = 'authenticated');
-```
-
-#### Migration 002: Table blocked_slots
-
-```sql
--- supabase/migrations/002_create_blocked_slots.sql
-
-CREATE TABLE blocked_slots (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    date DATE NOT NULL,
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
-    reason VARCHAR(255),
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-
-    CONSTRAINT valid_blocked_time CHECK (end_time > start_time),
-    CONSTRAINT unique_blocked_slot UNIQUE (date, start_time)
-);
-
-CREATE INDEX idx_blocked_slots_date ON blocked_slots(date);
-
--- RLS
-ALTER TABLE blocked_slots ENABLE ROW LEVEL SECURITY;
-
--- Tout le monde peut lire (pour afficher les créneaux indisponibles)
-CREATE POLICY "Anyone can read blocked_slots" ON blocked_slots
-    FOR SELECT USING (true);
-
--- Seul admin peut gérer
-CREATE POLICY "Admin can manage blocked_slots" ON blocked_slots
-    FOR ALL USING (auth.role() = 'authenticated');
-```
-
-#### Migration 003: Table photos
-
-```sql
--- supabase/migrations/003_create_photos.sql
-
-CREATE TYPE photo_category AS ENUM ('mariage', 'evenement', 'table');
-
-CREATE TABLE photos (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    url VARCHAR(500) NOT NULL,
-    alt VARCHAR(255) NOT NULL,
-    category photo_category NOT NULL,
-    display_order INTEGER DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX idx_photos_category ON photos(category);
-CREATE INDEX idx_photos_order ON photos(display_order);
-
--- RLS
-ALTER TABLE photos ENABLE ROW LEVEL SECURITY;
-
--- Tout le monde peut lire
-CREATE POLICY "Anyone can read photos" ON photos
-    FOR SELECT USING (true);
-
--- Seul admin peut gérer
-CREATE POLICY "Admin can manage photos" ON photos
-    FOR ALL USING (auth.role() = 'authenticated');
-```
-
-#### Migration 004: Table business_hours
-
-```sql
--- supabase/migrations/004_create_business_hours.sql
-
-CREATE TABLE business_hours (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
-    open_time TIME NOT NULL DEFAULT '09:00',
-    close_time TIME NOT NULL DEFAULT '18:00',
-    is_open BOOLEAN DEFAULT true,
-
-    CONSTRAINT unique_day UNIQUE (day_of_week),
-    CONSTRAINT valid_hours CHECK (close_time > open_time)
-);
-
--- Données initiales (Lundi-Vendredi: 9h-18h, Weekend: fermé)
-INSERT INTO business_hours (day_of_week, open_time, close_time, is_open) VALUES
-    (0, '09:00', '18:00', false),  -- Dimanche
-    (1, '09:00', '18:00', true),   -- Lundi
-    (2, '09:00', '18:00', true),   -- Mardi
-    (3, '09:00', '18:00', true),   -- Mercredi
-    (4, '09:00', '18:00', true),   -- Jeudi
-    (5, '09:00', '18:00', true),   -- Vendredi
-    (6, '09:00', '18:00', false);  -- Samedi
-
--- RLS
-ALTER TABLE business_hours ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Anyone can read business_hours" ON business_hours
-    FOR SELECT USING (true);
-
-CREATE POLICY "Admin can update business_hours" ON business_hours
-    FOR UPDATE USING (auth.role() = 'authenticated');
-```
-
-### 5.3 Types TypeScript
-
-```typescript
-// lib/types/database.types.ts
-
-export type EventType = 'mariage' | 'table' | 'autre';
-export type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled';
-export type PhotoCategory = 'mariage' | 'evenement' | 'table';
-
-export interface Appointment {
-  id: string;
-  client_name: string;
-  client_email: string;
-  client_phone: string;
-  date: string;           // Format: YYYY-MM-DD
-  start_time: string;     // Format: HH:mm
-  end_time: string;       // Format: HH:mm
-  event_type: EventType;
-  message: string | null;
-  status: AppointmentStatus;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface BlockedSlot {
-  id: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  reason: string | null;
-  created_at: string;
-}
-
-export interface Photo {
-  id: string;
-  url: string;
-  alt: string;
-  category: PhotoCategory;
-  display_order: number;
-  created_at: string;
-}
-
-export interface BusinessHours {
-  id: string;
-  day_of_week: number;
-  open_time: string;
-  close_time: string;
-  is_open: boolean;
-}
-
-// Types pour les formulaires (input)
-export interface CreateAppointmentInput {
-  client_name: string;
-  client_email: string;
-  client_phone: string;
-  date: string;
-  start_time: string;
-  event_type: EventType;
-  message?: string;
-}
-
-export interface UpdateAppointmentInput {
-  status?: AppointmentStatus;
-}
-
-// Types pour les créneaux disponibles
-export interface TimeSlot {
-  time: string;           // Format: HH:mm
-  available: boolean;
-}
-
-export interface DayAvailability {
-  date: string;
-  slots: TimeSlot[];
-  isOpen: boolean;
-}
-```
-
----
-
-## 6. Architecture des Composants
-
-### 6.1 Hiérarchie des Composants
-
-```
-App
-├── RootLayout
-│   ├── Toaster (notifications)
-│   └── Children
+├── public/                           # Assets statiques
+│   └── images/
 │
-├── PublicLayout
-│   ├── Header
-│   │   ├── Logo
-│   │   ├── Nav
-│   │   └── MobileMenu
-│   ├── Children (pages)
-│   └── Footer
-│       ├── SocialLinks
-│       └── LegalLinks
+├── middleware.ts                     # Middleware Next.js (auth)
+├── tailwind.config.ts                # Configuration Tailwind
+└── architecture.md                   # Ce document
+```
+
+### 4.2 Concept Pédagogique : Route Groups
+
+Les **Route Groups** (dossiers entre parenthèses) permettent d'organiser les routes sans affecter l'URL :
+
+```
+app/
+├── (public)/           # URL: /
+│   └── page.tsx        # accessible via /
 │
-├── HomePage
-│   ├── HeroSection
-│   │   ├── AnimatedTitle
-│   │   └── CTAButton
-│   ├── ServicesSection
-│   │   └── ServiceCard (x3)
-│   ├── GallerySection
-│   │   ├── GalleryFilter
-│   │   ├── GalleryGrid
-│   │   │   └── GalleryItem (x20)
-│   │   └── GalleryModal
-│   ├── AboutSection
-│   └── ContactCTA
-│
-├── BookingPage
-│   ├── BookingCalendar
-│   │   ├── CalendarHeader
-│   │   ├── CalendarGrid
-│   │   └── DayCell
-│   ├── TimeSlots
-│   │   └── TimeSlotButton (xN)
-│   ├── BookingForm
-│   │   ├── Input (Nom, Email, Phone)
-│   │   ├── Select (EventType)
-│   │   └── Textarea (Message)
-│   └── BookingConfirmation
-│
-└── AdminLayout
-    ├── AdminSidebar
-    │   ├── Logo
-    │   ├── NavLinks
-    │   └── LogoutButton
-    ├── AdminHeader
-    └── Children (admin pages)
-        │
-        ├── DashboardPage
-        │   ├── StatsCards
-        │   ├── UpcomingAppointments
-        │   └── QuickActions
-        │
-        ├── AppointmentsPage
-        │   ├── AppointmentsFilter
-        │   ├── AppointmentsTable
-        │   │   └── AppointmentRow
-        │   └── AppointmentDetailModal
-        │
-        ├── GalleryManagePage
-        │   ├── PhotoUpload
-        │   ├── PhotoGrid
-        │   │   └── PhotoCard
-        │   └── CategoryManager
-        │
-        └── SettingsPage
-            ├── BusinessHoursEditor
-            └── BlockedSlotsManager
+├── (admin)/            # URL: /admin
+│   └── admin/
+│       └── page.tsx    # accessible via /admin
 ```
 
-### 6.2 Composants Clés - Spécifications
-
-#### BookingCalendar
-
-```typescript
-// components/booking/booking-calendar.tsx
-
-interface BookingCalendarProps {
-  selectedDate: Date | null;
-  onDateSelect: (date: Date) => void;
-  blockedDates: string[];           // Dates complètement bloquées
-  minDate?: Date;                   // Date minimum (défaut: demain)
-  maxDate?: Date;                   // Date maximum (défaut: +3 mois)
-}
-
-// Comportement:
-// - Affiche un calendrier mensuel
-// - Les dates passées sont désactivées (grisées)
-// - Les dates bloquées sont désactivées
-// - La date sélectionnée est mise en évidence
-// - Navigation mois par mois
-```
-
-#### TimeSlots
-
-```typescript
-// components/booking/time-slots.tsx
-
-interface TimeSlotsProps {
-  date: Date;
-  selectedTime: string | null;
-  onTimeSelect: (time: string) => void;
-  availableSlots: TimeSlot[];
-}
-
-// Comportement:
-// - Affiche les créneaux de 9h à 18h
-// - Créneaux de 1h (9h-10h, 10h-11h, etc.)
-// - Créneaux passés/réservés désactivés
-// - Indication visuelle du créneau sélectionné
-```
-
-#### GalleryGrid
-
-```typescript
-// components/gallery/gallery-grid.tsx
-
-interface GalleryGridProps {
-  photos: Photo[];
-  onPhotoClick: (photo: Photo) => void;
-  columns?: 2 | 3 | 4;              // Responsive columns
-}
-
-// Comportement:
-// - Grille responsive avec masonry layout
-// - Lazy loading des images
-// - Placeholder blur pendant le chargement
-// - Animation au hover
-```
-
-### 6.3 State Management
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    STATE ARCHITECTURE                        │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│                    SERVER STATE                              │
-│  (Géré par React Server Components + Supabase)              │
-├─────────────────────────────────────────────────────────────┤
-│  • Photos de la galerie                                      │
-│  • Liste des rendez-vous (admin)                            │
-│  • Créneaux disponibles                                      │
-│  • Paramètres business hours                                 │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    CLIENT STATE                              │
-│  (Géré par useState/useReducer localement)                  │
-├─────────────────────────────────────────────────────────────┤
-│  • Date sélectionnée (calendrier)                           │
-│  • Créneau sélectionné                                       │
-│  • Formulaire de réservation                                 │
-│  • Modal ouverte/fermée                                      │
-│  • Filtres galerie actifs                                    │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    URL STATE                                 │
-│  (Géré par Next.js searchParams)                            │
-├─────────────────────────────────────────────────────────────┤
-│  • Filtre de catégorie galerie (?category=mariage)          │
-│  • Pagination admin (?page=2)                                │
-│  • Filtre statut RDV (?status=pending)                       │
-└─────────────────────────────────────────────────────────────┘
-```
+**Pourquoi ?** Chaque groupe peut avoir son propre `layout.tsx` :
+- `(public)` : Header + Footer publics
+- `(admin)` : Sidebar admin
 
 ---
 
-## 7. Spécification des APIs
+## 5. Concepts Fondamentaux
 
-### 7.1 Server Actions (Mutations)
+### 5.1 React Context et Providers
 
-Les Server Actions Next.js sont privilégiées pour les mutations.
+Les **Providers** permettent de partager des données dans toute l'application sans passer les props manuellement (prop drilling).
 
-#### Booking Actions
-
-```typescript
-// lib/actions/booking.actions.ts
-
-'use server';
-
-import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
-import { bookingSchema } from '@/lib/validators/booking.schema';
-import { BookingService } from '@/lib/services/booking.service';
-import { EmailService } from '@/lib/services/email.service';
-
-// Action: Créer un rendez-vous
-export async function createAppointment(formData: FormData) {
-  // 1. Extraire et valider les données
-  const rawData = {
-    client_name: formData.get('client_name'),
-    client_email: formData.get('client_email'),
-    client_phone: formData.get('client_phone'),
-    date: formData.get('date'),
-    start_time: formData.get('start_time'),
-    event_type: formData.get('event_type'),
-    message: formData.get('message'),
-  };
-
-  const validatedData = bookingSchema.parse(rawData);
-
-  // 2. Vérifier disponibilité
-  const isAvailable = await BookingService.checkAvailability(
-    validatedData.date,
-    validatedData.start_time
-  );
-
-  if (!isAvailable) {
-    return { error: 'Ce créneau n\'est plus disponible.' };
-  }
-
-  // 3. Créer le rendez-vous
-  const appointment = await BookingService.create(validatedData);
-
-  // 4. Envoyer les emails
-  await Promise.all([
-    EmailService.sendBookingConfirmation(appointment),
-    EmailService.sendAdminNotification(appointment),
-  ]);
-
-  // 5. Revalider le cache
-  revalidatePath('/booking');
-  revalidatePath('/admin/appointments');
-
-  return { success: true, appointment };
-}
-
-// Action: Mettre à jour le statut
-export async function updateAppointmentStatus(
-  appointmentId: string,
-  status: 'confirmed' | 'cancelled'
-) {
-  // Vérifier l'authentification admin
-  const session = await getSession();
-  if (!session) {
-    return { error: 'Non autorisé' };
-  }
-
-  const appointment = await BookingService.updateStatus(appointmentId, status);
-
-  // Notifier le client
-  await EmailService.sendStatusUpdate(appointment);
-
-  revalidatePath('/admin/appointments');
-
-  return { success: true };
-}
-```
-
-#### Gallery Actions
+#### Exemple : LogoProvider
 
 ```typescript
-// lib/actions/gallery.actions.ts
+// components/providers/logo-provider.tsx
+'use client';
 
-'use server';
+import { createContext, useContext, ReactNode } from 'react';
 
-import { revalidatePath } from 'next/cache';
-import { GalleryService } from '@/lib/services/gallery.service';
+// 1. Créer le contexte avec une valeur par défaut
+const LogoContext = createContext<string>('/images/logo.png');
 
-// Action: Upload photo
-export async function uploadPhoto(formData: FormData) {
-  const session = await getSession();
-  if (!session) {
-    return { error: 'Non autorisé' };
-  }
-
-  const file = formData.get('file') as File;
-  const category = formData.get('category') as string;
-  const alt = formData.get('alt') as string;
-
-  // 1. Upload vers Supabase Storage
-  const url = await GalleryService.uploadToStorage(file);
-
-  // 2. Créer l'entrée en base
-  const photo = await GalleryService.create({
-    url,
-    category,
-    alt,
-  });
-
-  revalidatePath('/');
-  revalidatePath('/admin/gallery');
-
-  return { success: true, photo };
+// 2. Créer le Provider qui enveloppe les enfants
+interface LogoProviderProps {
+  children: ReactNode;
+  logoUrl: string;
 }
 
-// Action: Supprimer photo
-export async function deletePhoto(photoId: string) {
-  const session = await getSession();
-  if (!session) {
-    return { error: 'Non autorisé' };
-  }
-
-  await GalleryService.delete(photoId);
-
-  revalidatePath('/');
-  revalidatePath('/admin/gallery');
-
-  return { success: true };
-}
-
-// Action: Réorganiser photos
-export async function reorderPhotos(orderedIds: string[]) {
-  const session = await getSession();
-  if (!session) {
-    return { error: 'Non autorisé' };
-  }
-
-  await GalleryService.updateOrder(orderedIds);
-
-  revalidatePath('/');
-
-  return { success: true };
-}
-```
-
-### 7.2 Data Fetching (Server Components)
-
-```typescript
-// lib/services/booking.service.ts
-
-import { createServerClient } from '@/lib/supabase/server';
-
-export class BookingService {
-  // Récupérer les créneaux disponibles pour une date
-  static async getAvailableSlots(date: string): Promise<TimeSlot[]> {
-    const supabase = createServerClient();
-
-    // 1. Récupérer les heures d'ouverture du jour
-    const dayOfWeek = new Date(date).getDay();
-    const { data: hours } = await supabase
-      .from('business_hours')
-      .select('*')
-      .eq('day_of_week', dayOfWeek)
-      .single();
-
-    if (!hours?.is_open) {
-      return [];
-    }
-
-    // 2. Récupérer les créneaux déjà pris
-    const { data: appointments } = await supabase
-      .from('appointments')
-      .select('start_time')
-      .eq('date', date)
-      .neq('status', 'cancelled');
-
-    // 3. Récupérer les créneaux bloqués
-    const { data: blocked } = await supabase
-      .from('blocked_slots')
-      .select('start_time')
-      .eq('date', date);
-
-    // 4. Générer les créneaux disponibles
-    const bookedTimes = new Set([
-      ...appointments?.map(a => a.start_time) || [],
-      ...blocked?.map(b => b.start_time) || [],
-    ]);
-
-    const slots: TimeSlot[] = [];
-    let current = parseTime(hours.open_time);
-    const end = parseTime(hours.close_time);
-
-    while (current < end) {
-      const timeStr = formatTime(current);
-      slots.push({
-        time: timeStr,
-        available: !bookedTimes.has(timeStr),
-      });
-      current += 60; // +1 heure
-    }
-
-    return slots;
-  }
-
-  // Récupérer tous les rendez-vous (admin)
-  static async getAll(filters?: {
-    status?: AppointmentStatus;
-    startDate?: string;
-    endDate?: string;
-  }): Promise<Appointment[]> {
-    const supabase = createServerClient();
-
-    let query = supabase
-      .from('appointments')
-      .select('*')
-      .order('date', { ascending: true })
-      .order('start_time', { ascending: true });
-
-    if (filters?.status) {
-      query = query.eq('status', filters.status);
-    }
-    if (filters?.startDate) {
-      query = query.gte('date', filters.startDate);
-    }
-    if (filters?.endDate) {
-      query = query.lte('date', filters.endDate);
-    }
-
-    const { data, error } = await query;
-
-    if (error) throw error;
-    return data;
-  }
-}
-```
-
-### 7.3 API Routes (Webhooks)
-
-```typescript
-// app/api/webhook/route.ts
-
-import { NextRequest, NextResponse } from 'next/server';
-import { headers } from 'next/headers';
-
-// Webhook pour intégrations futures (ex: paiements, calendrier externe)
-export async function POST(request: NextRequest) {
-  const headersList = headers();
-  const signature = headersList.get('x-webhook-signature');
-
-  // Vérifier la signature
-  if (!verifySignature(signature)) {
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
-  }
-
-  const body = await request.json();
-
-  // Traiter l'événement
-  switch (body.event) {
-    case 'calendar.sync':
-      // Synchroniser avec calendrier externe
-      break;
-    default:
-      return NextResponse.json({ error: 'Unknown event' }, { status: 400 });
-  }
-
-  return NextResponse.json({ success: true });
-}
-```
-
----
-
-## 8. Flux de Données
-
-### 8.1 Flux de Réservation
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    BOOKING FLOW                                          │
-└─────────────────────────────────────────────────────────────────────────┘
-
-Visiteur                          Système                           Admin
-   │                                 │                                 │
-   │  1. Accède à /booking           │                                 │
-   │────────────────────────────────▶│                                 │
-   │                                 │                                 │
-   │  2. RSC: Charge calendrier      │                                 │
-   │◀────────────────────────────────│                                 │
-   │     + dates disponibles         │                                 │
-   │                                 │                                 │
-   │  3. Sélectionne une date        │                                 │
-   │────────────────────────────────▶│                                 │
-   │                                 │                                 │
-   │  4. Fetch créneaux disponibles  │                                 │
-   │◀────────────────────────────────│                                 │
-   │                                 │                                 │
-   │  5. Sélectionne un créneau      │                                 │
-   │────────────────────────────────▶│                                 │
-   │                                 │                                 │
-   │  6. Affiche formulaire          │                                 │
-   │◀────────────────────────────────│                                 │
-   │                                 │                                 │
-   │  7. Soumet formulaire           │                                 │
-   │────────────────────────────────▶│                                 │
-   │                                 │  8. Valide données              │
-   │                                 │  9. Vérifie disponibilité       │
-   │                                 │  10. Crée appointment           │
-   │                                 │  11. Envoie emails              │
-   │                                 │────────────────────────────────▶│
-   │                                 │     Email notification          │
-   │  12. Confirmation               │                                 │
-   │◀────────────────────────────────│                                 │
-   │     + Email confirmation        │                                 │
-   │                                 │                                 │
-   │                                 │  13. Admin consulte dashboard   │
-   │                                 │◀────────────────────────────────│
-   │                                 │                                 │
-   │                                 │  14. Admin accepte/refuse       │
-   │                                 │◀────────────────────────────────│
-   │                                 │                                 │
-   │  15. Email statut update        │                                 │
-   │◀────────────────────────────────│                                 │
-   │                                 │                                 │
-```
-
-### 8.2 Flux de Gestion Galerie (Admin)
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    GALLERY MANAGEMENT FLOW                               │
-└─────────────────────────────────────────────────────────────────────────┘
-
-Admin                             Système                          Storage
-   │                                 │                                 │
-   │  1. Accède /admin/gallery       │                                 │
-   │────────────────────────────────▶│                                 │
-   │                                 │  2. Fetch photos existantes     │
-   │  3. Affiche grille photos       │◀────────────────────────────────│
-   │◀────────────────────────────────│                                 │
-   │                                 │                                 │
-   │  4. Upload nouvelle photo       │                                 │
-   │────────────────────────────────▶│                                 │
-   │     (file, category, alt)       │                                 │
-   │                                 │  5. Upload fichier              │
-   │                                 │────────────────────────────────▶│
-   │                                 │                                 │
-   │                                 │  6. Retourne URL publique       │
-   │                                 │◀────────────────────────────────│
-   │                                 │                                 │
-   │                                 │  7. Crée entrée BDD             │
-   │                                 │  8. Revalide cache /            │
-   │  9. Confirmation + preview      │                                 │
-   │◀────────────────────────────────│                                 │
-   │                                 │                                 │
-   │  10. Drag & drop réorganiser    │                                 │
-   │────────────────────────────────▶│                                 │
-   │                                 │  11. Update display_order       │
-   │                                 │  12. Revalide cache             │
-   │  13. Nouvel ordre confirmé      │                                 │
-   │◀────────────────────────────────│                                 │
-```
-
----
-
-## 9. Authentification & Sécurité
-
-### 9.1 Architecture d'Authentification
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    AUTHENTICATION FLOW                                   │
-└─────────────────────────────────────────────────────────────────────────┘
-
-                         ┌──────────────────┐
-                         │  Supabase Auth   │
-                         │  (Magic Link ou  │
-                         │   Email/Password)│
-                         └────────┬─────────┘
-                                  │
-          ┌───────────────────────┼───────────────────────┐
-          │                       │                       │
-          ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│    Browser      │    │   Middleware    │    │  Server Actions │
-│    (Client)     │    │   (Route Guard) │    │  (Mutations)    │
-├─────────────────┤    ├─────────────────┤    ├─────────────────┤
-│ supabase-js     │    │ Vérifie session │    │ Vérifie session │
-│ stocke tokens   │    │ Redirige si     │    │ avant mutation  │
-│ dans cookies    │    │ non authentifié │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-### 9.2 Configuration Middleware
-
-```typescript
-// middleware.ts
-
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/server';
-
-export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          response.cookies.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          response.cookies.set({ name, value: '', ...options });
-        },
-      },
-    }
-  );
-
-  const { data: { session } } = await supabase.auth.getSession();
-
-  // Protection des routes admin
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    if (!session) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-  }
-
-  // Redirection si déjà connecté
-  if (request.nextUrl.pathname === '/login' && session) {
-    return NextResponse.redirect(new URL('/admin', request.url));
-  }
-
-  return response;
-}
-
-export const config = {
-  matcher: ['/admin/:path*', '/login'],
-};
-```
-
-### 9.3 Mesures de Sécurité
-
-| Mesure | Implémentation |
-|--------|----------------|
-| **CSRF Protection** | Tokens SameSite cookies via Supabase |
-| **Rate Limiting** | Vercel Edge Functions limiter |
-| **Input Validation** | Zod schemas côté serveur |
-| **SQL Injection** | Prevented par Supabase client |
-| **XSS** | React échappe par défaut + CSP headers |
-| **RLS (Row Level Security)** | Supabase policies par table |
-| **HTTPS** | Forcé par Vercel |
-| **Secrets** | Variables d'environnement sécurisées |
-
-### 9.4 Headers de Sécurité
-
-```typescript
-// next.config.js
-
-const securityHeaders = [
-  {
-    key: 'X-DNS-Prefetch-Control',
-    value: 'on',
-  },
-  {
-    key: 'Strict-Transport-Security',
-    value: 'max-age=63072000; includeSubDomains; preload',
-  },
-  {
-    key: 'X-Content-Type-Options',
-    value: 'nosniff',
-  },
-  {
-    key: 'X-Frame-Options',
-    value: 'DENY',
-  },
-  {
-    key: 'X-XSS-Protection',
-    value: '1; mode=block',
-  },
-  {
-    key: 'Referrer-Policy',
-    value: 'origin-when-cross-origin',
-  },
-  {
-    key: 'Content-Security-Policy',
-    value: `
-      default-src 'self';
-      script-src 'self' 'unsafe-eval' 'unsafe-inline';
-      style-src 'self' 'unsafe-inline';
-      img-src 'self' blob: data: https://*.supabase.co;
-      font-src 'self';
-      connect-src 'self' https://*.supabase.co;
-    `.replace(/\n/g, ''),
-  },
-];
-
-module.exports = {
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: securityHeaders,
-      },
-    ];
-  },
-};
-```
-
----
-
-## 10. Performance & Optimisation
-
-### 10.1 Stratégie de Rendu
-
-| Page | Stratégie | Justification |
-|------|-----------|---------------|
-| **Page d'accueil** | SSG + ISR (1h) | Contenu semi-statique, SEO important |
-| **Page booking** | SSR | Données temps réel (créneaux) |
-| **Admin dashboard** | SSR | Données temps réel, protégé |
-| **Galerie modal** | CSR | Interaction utilisateur |
-
-### 10.2 Optimisation des Images
-
-```typescript
-// next.config.js
-
-module.exports = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '*.supabase.co',
-        pathname: '/storage/v1/object/public/**',
-      },
-    ],
-    formats: ['image/avif', 'image/webp'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-  },
-};
-```
-
-```typescript
-// Composant Image optimisé
-import Image from 'next/image';
-
-function GalleryImage({ photo }: { photo: Photo }) {
+export function LogoProvider({ children, logoUrl }: LogoProviderProps) {
   return (
-    <Image
-      src={photo.url}
-      alt={photo.alt}
-      width={800}
-      height={600}
-      placeholder="blur"
-      blurDataURL={generateBlurPlaceholder(photo.url)}
-      loading="lazy"
-      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-      className="object-cover"
-    />
+    <LogoContext.Provider value={logoUrl}>
+      {children}
+    </LogoContext.Provider>
+  );
+}
+
+// 3. Créer un hook personnalisé pour consommer le contexte
+export function useLogo(): string {
+  return useContext(LogoContext);
+}
+```
+
+**Utilisation dans le layout :**
+
+```typescript
+// app/(public)/layout.tsx
+import { getLogo } from '@/lib/actions/settings.actions';
+import { LogoProvider } from '@/components/providers/logo-provider';
+
+export default async function PublicLayout({ children }) {
+  const logoUrl = await getLogo();  // Chargé côté serveur
+
+  return (
+    <LogoProvider logoUrl={logoUrl}>
+      <Header />    {/* Peut utiliser useLogo() */}
+      {children}
+      <Footer />    {/* Peut utiliser useLogo() */}
+    </LogoProvider>
   );
 }
 ```
 
-### 10.3 Métriques Cibles (Core Web Vitals)
-
-| Métrique | Cible | Stratégie |
-|----------|-------|-----------|
-| **LCP** | < 2.5s | Images optimisées, SSR, CDN |
-| **FID** | < 100ms | Code splitting, lazy loading |
-| **CLS** | < 0.1 | Dimensions images explicites |
-| **TTFB** | < 600ms | Edge caching, Vercel |
-
-### 10.4 Caching Strategy
+**Utilisation dans un composant :**
 
 ```typescript
-// lib/services/booking.service.ts
+// components/layout/header.tsx
+'use client';
 
-import { unstable_cache } from 'next/cache';
+import { useLogo } from '@/components/providers/logo-provider';
 
-// Cache des créneaux disponibles (5 minutes)
-export const getCachedAvailableSlots = unstable_cache(
-  async (date: string) => {
-    return BookingService.getAvailableSlots(date);
-  },
-  ['available-slots'],
-  {
-    revalidate: 300, // 5 minutes
-    tags: ['booking'],
-  }
-);
+export function Header() {
+  const logoUrl = useLogo();  // Récupère le logo du contexte
 
-// Cache des photos (1 heure)
-export const getCachedPhotos = unstable_cache(
-  async (category?: string) => {
-    return GalleryService.getAll(category);
-  },
-  ['photos'],
-  {
-    revalidate: 3600, // 1 heure
-    tags: ['gallery'],
-  }
-);
+  return (
+    <header>
+      <Image src={logoUrl} alt="Logo" />
+    </header>
+  );
+}
 ```
 
----
+### 5.2 Concept Pédagogique : Le Pattern Preview
 
-## 11. Stratégie de Déploiement
+L'application implémente un mode "aperçu" qui désactive les interactions dans l'admin :
 
-### 11.1 Architecture de Déploiement
+```typescript
+// components/providers/preview-provider.tsx
+'use client';
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    DEPLOYMENT ARCHITECTURE                               │
-└─────────────────────────────────────────────────────────────────────────┘
+import { createContext, useContext, ReactNode } from 'react';
 
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   GitHub     │────▶│   Vercel     │────▶│  Production  │
-│   (Source)   │     │   (Build)    │     │   (Deploy)   │
-└──────────────┘     └──────────────┘     └──────────────┘
-       │                                         │
-       │                                         ▼
-       │                              ┌──────────────────┐
-       │                              │   Vercel Edge    │
-       │                              │   Network (CDN)  │
-       │                              └──────────────────┘
-       │                                         │
-       ▼                                         ▼
-┌──────────────┐                      ┌──────────────────┐
-│   Preview    │                      │     Supabase     │
-│   Branches   │                      │   (Database +    │
-│              │                      │    Storage)      │
-└──────────────┘                      └──────────────────┘
-```
+interface PreviewContextType {
+  isPreview: boolean;
+}
 
-### 11.2 Environnements
+const PreviewContext = createContext<PreviewContextType>({ isPreview: false });
 
-| Environnement | URL | Branche | Base de données |
-|---------------|-----|---------|-----------------|
-| **Production** | aureluz.fr | main | Supabase Prod |
-| **Preview** | *.vercel.app | PR branches | Supabase Staging |
-| **Local** | localhost:3000 | - | Supabase Local |
+export function PreviewProvider({ children, isPreview = false }) {
+  return (
+    <PreviewContext.Provider value={{ isPreview }}>
+      {children}
+    </PreviewContext.Provider>
+  );
+}
 
-### 11.3 Variables d'Environnement
-
-```bash
-# .env.example
-
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx
-SUPABASE_SERVICE_ROLE_KEY=eyJxxx  # Server only
-
-# Email (Resend)
-RESEND_API_KEY=re_xxx
-
-# App
-NEXT_PUBLIC_APP_URL=https://aureluz.fr
-ADMIN_EMAIL=aurelie@aureluz.fr
+export function usePreview(): boolean {
+  const context = useContext(PreviewContext);
+  return context.isPreview;
+}
 ```
 
-### 11.4 CI/CD Pipeline
+**Utilisation pour désactiver les liens :**
 
-```yaml
-# .github/workflows/ci.yml (optionnel, Vercel gère le déploiement)
+```typescript
+// components/layout/header.tsx
+'use client';
 
-name: CI
+import { usePreview } from '@/components/providers/preview-provider';
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+export function Header() {
+  const isPreview = usePreview();
 
-jobs:
-  quality:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Type check
-        run: npm run type-check
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Build
-        run: npm run build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+  return (
+    <nav>
+      {isPreview ? (
+        // En mode preview : lien désactivé
+        <span className="cursor-default opacity-80">Services</span>
+      ) : (
+        // Mode normal : lien fonctionnel
+        <Link href="/#services">Services</Link>
+      )}
+    </nav>
+  );
+}
 ```
 
----
+### 5.3 Validation avec Zod
 
-## 12. Plan d'Implémentation
-
-### Phase 1: Fondations (Semaine 1)
-
-- [ ] Initialiser projet Next.js + TypeScript
-- [ ] Configurer Tailwind CSS + shadcn/ui
-- [ ] Setup Supabase (projet, tables, RLS)
-- [ ] Configurer variables d'environnement
-- [ ] Créer structure de dossiers
-
-### Phase 2: Site Vitrine (Semaine 2)
-
-- [ ] Layout public (Header, Footer)
-- [ ] Page d'accueil (Hero, Services, About)
-- [ ] Composant Gallery + filtres
-- [ ] Optimisation images
-- [ ] Responsive design
-
-### Phase 3: Système de Réservation (Semaine 3)
-
-- [ ] Composant Calendar
-- [ ] Composant TimeSlots
-- [ ] Formulaire de réservation
-- [ ] Server Actions (création RDV)
-- [ ] Service Email (confirmation)
-
-### Phase 4: Back-Office Admin (Semaine 4)
-
-- [ ] Authentification Supabase
-- [ ] Layout Admin (Sidebar)
-- [ ] Dashboard (stats, RDV à venir)
-- [ ] Gestion des RDV (liste, actions)
-- [ ] Gestion des créneaux bloqués
-
-### Phase 5: Galerie Admin + Polish (Semaine 5)
-
-- [ ] Upload photos
-- [ ] Gestion galerie (supprimer, réordonner)
-- [ ] Tests manuels
-- [ ] Optimisation performances
-- [ ] Déploiement production
-
----
-
-## Annexes
-
-### A. Validation Schemas (Zod)
+**Zod** permet de valider les données côté serveur de manière type-safe :
 
 ```typescript
 // lib/validators/booking.schema.ts
-
 import { z } from 'zod';
 
 export const bookingSchema = z.object({
@@ -1581,23 +651,15 @@ export const bookingSchema = z.object({
 
   date: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Format de date invalide')
-    .refine((date) => {
-      const selected = new Date(date);
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
-      return selected >= tomorrow;
-    }, 'La date doit être au moins 24h à l\'avance'),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Format de date invalide'),
 
   start_time: z
     .string()
     .regex(/^(0[9]|1[0-7]):00$/, 'Créneau horaire invalide'),
 
-  event_type: z
-    .enum(['mariage', 'table', 'autre'], {
-      errorMap: () => ({ message: 'Type d\'événement invalide' }),
-    }),
+  event_type: z.enum(['signature', 'instants', 'coaching'], {
+    errorMap: () => ({ message: "Type d'événement invalide" }),
+  }),
 
   message: z
     .string()
@@ -1605,154 +667,1016 @@ export const bookingSchema = z.object({
     .optional(),
 });
 
+// Type TypeScript généré automatiquement
 export type BookingFormData = z.infer<typeof bookingSchema>;
 ```
 
-### B. Template Email (React Email)
+**Utilisation dans une Server Action :**
 
 ```typescript
-// emails/booking-confirmation.tsx
+// lib/actions/booking.actions.ts
+'use server';
 
-import {
-  Html,
-  Head,
-  Body,
-  Container,
-  Section,
-  Text,
-  Heading,
-  Hr,
-} from '@react-email/components';
+import { bookingSchema } from '@/lib/validators/booking.schema';
 
-interface BookingConfirmationProps {
-  clientName: string;
+export async function createAppointment(formData: FormData) {
+  try {
+    // Validation avec messages d'erreur français
+    const validated = bookingSchema.parse({
+      client_name: formData.get('client_name'),
+      client_email: formData.get('client_email'),
+      // ...
+    });
+
+    // Si on arrive ici, les données sont valides
+    // ...
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      // Retourner les erreurs de validation
+      return {
+        success: false,
+        errors: error.errors.map(e => e.message)
+      };
+    }
+    throw error;
+  }
+}
+```
+
+---
+
+## 6. Modèle de Données
+
+### 6.1 Diagramme Entité-Relation
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            BASE DE DONNÉES                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────┐       ┌──────────────────────┐       ┌──────────────────────┐
+│    appointments      │       │    blocked_slots     │       │   business_hours     │
+├──────────────────────┤       ├──────────────────────┤       ├──────────────────────┤
+│ id: uuid [PK]        │       │ id: uuid [PK]        │       │ id: uuid [PK]        │
+│ client_name: varchar │       │ date: date           │       │ day_of_week: int     │
+│ client_email: varchar│       │ start_time: time     │       │ open_time: time      │
+│ client_phone: varchar│       │ end_time: time       │       │ close_time: time     │
+│ date: date           │       │ reason: varchar?     │       │ is_open: boolean     │
+│ start_time: time     │       │ created_at: timestamp│       └──────────────────────┘
+│ end_time: time       │       └──────────────────────┘
+│ event_type: enum     │
+│ message: text?       │       ┌──────────────────────┐       ┌──────────────────────┐
+│ status: enum         │       │       photos         │       │      services        │
+│ created_at: timestamp│       ├──────────────────────┤       ├──────────────────────┤
+│ updated_at: timestamp│       │ id: uuid [PK]        │       │ id: uuid [PK]        │
+└──────────────────────┘       │ url: varchar         │       │ emoji: varchar       │
+                               │ alt: varchar         │       │ title: varchar       │
+┌──────────────────────┐       │ category: enum       │       │ description: text    │
+│       quotes         │       │ display_order: int   │       │ display_order: int   │
+├──────────────────────┤       │ created_at: timestamp│       │ is_active: boolean   │
+│ id: uuid [PK]        │       └──────────────────────┘       │ created_at: timestamp│
+│ quote_number: varchar│                                      └──────────────────────┘
+│ client_name: varchar │       ┌──────────────────────┐
+│ client_email: varchar│       │    testimonials      │       ┌──────────────────────┐
+│ client_phone: varchar│       ├──────────────────────┤       │   site_settings      │
+│ client_address: text │       │ id: uuid [PK]        │       ├──────────────────────┤
+│ items: jsonb         │       │ client_name: varchar │       │ id: uuid [PK]        │
+│ vat_rate: decimal    │       │ client_email: varchar│       │ key: varchar [UK]    │
+│ subtotal: decimal    │       │ event_type: varchar  │       │ value: text          │
+│ vat_amount: decimal  │       │ rating: int          │       │ type: varchar        │
+│ total: decimal       │       │ title: varchar       │       │ description: text    │
+│ notes: text?         │       │ content: text        │       │ updated_at: timestamp│
+│ validity_days: int   │       │ status: enum         │       └──────────────────────┘
+│ status: enum         │       │ approved_at: timestamp│
+│ created_at: timestamp│       │ created_at: timestamp│
+│ sent_at: timestamp?  │       └──────────────────────┘
+└──────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                            ANALYTICS TABLES                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+
+┌──────────────────────┐       ┌──────────────────────┐       ┌──────────────────────┐
+│  analytics_sessions  │       │ analytics_page_views │       │   analytics_events   │
+├──────────────────────┤       ├──────────────────────┤       ├──────────────────────┤
+│ id: uuid [PK]        │       │ id: uuid [PK]        │       │ id: uuid [PK]        │
+│ fingerprint: varchar │◄──────│ session_id: uuid [FK]│       │ session_id: uuid [FK]│
+│ country/region/city  │       │ page_path: varchar   │       │ category: varchar    │
+│ device_type: enum    │       │ referrer: varchar?   │       │ action: varchar      │
+│ browser/os: varchar  │       │ time_on_page: int?   │       │ label: varchar?      │
+│ utm_source/medium    │       │ scroll_depth: int?   │       │ value: decimal?      │
+│ is_returning: boolean│       │ created_at: timestamp│       │ created_at: timestamp│
+│ page_views_count: int│       └──────────────────────┘       └──────────────────────┘
+│ created_at: timestamp│
+└──────────────────────┘       ┌──────────────────────┐       ┌──────────────────────┐
+                               │analytics_conversions │       │analytics_daily_stats │
+                               ├──────────────────────┤       ├──────────────────────┤
+                               │ id: uuid [PK]        │       │ id: uuid [PK]        │
+                               │ session_id: uuid [FK]│       │ date: date [UK]      │
+                               │ funnel_step: int     │       │ unique_visitors: int │
+                               │ step_name: varchar   │       │ total_page_views: int│
+                               │ is_converted: boolean│       │ avg_time_on_site: int│
+                               │ created_at: timestamp│       │ bounce_rate: decimal │
+                               └──────────────────────┘       │ conversion_rate: dec │
+                                                              └──────────────────────┘
+```
+
+### 6.2 Concept Pédagogique : Row Level Security (RLS)
+
+**RLS** est une fonctionnalité de PostgreSQL qui restreint l'accès aux lignes selon des règles :
+
+```sql
+-- Exemple : Migration 001_create_appointments.sql
+
+-- Activer RLS sur la table
+ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
+
+-- Règle 1 : Tout le monde peut créer un RDV (visiteurs)
+CREATE POLICY "Anyone can create appointments" ON appointments
+    FOR INSERT
+    WITH CHECK (true);  -- Toujours autorisé
+
+-- Règle 2 : Seul l'admin peut lire tous les RDV
+CREATE POLICY "Admin can read all appointments" ON appointments
+    FOR SELECT
+    USING (auth.role() = 'authenticated');  -- Doit être connecté
+
+-- Règle 3 : Seul l'admin peut modifier
+CREATE POLICY "Admin can update appointments" ON appointments
+    FOR UPDATE
+    USING (auth.role() = 'authenticated');
+
+-- Règle 4 : Seul l'admin peut supprimer
+CREATE POLICY "Admin can delete appointments" ON appointments
+    FOR DELETE
+    USING (auth.role() = 'authenticated');
+```
+
+**Résultat :**
+- Un visiteur peut **créer** un RDV (réservation publique)
+- Seul l'admin connecté peut **voir**, **modifier** ou **supprimer** les RDV
+- Tout cela est géré au niveau de la base de données, pas du code
+
+### 6.3 Types TypeScript
+
+Les types sont centralisés dans `lib/types/index.ts` :
+
+```typescript
+// Statuts possibles pour un RDV
+export type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled';
+
+// Type d'événement
+export type EventType = 'signature' | 'instants' | 'coaching';
+
+// Interface complète d'un rendez-vous
+export interface Appointment {
+  id: string;
+  client_name: string;
+  client_email: string;
+  client_phone: string;
+  date: string;           // Format: YYYY-MM-DD
+  start_time: string;     // Format: HH:mm
+  end_time: string;
+  event_type: EventType;
+  message: string | null;
+  status: AppointmentStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+// Type pour la création (sans id ni timestamps)
+export interface CreateAppointmentInput {
+  client_name: string;
+  client_email: string;
+  client_phone: string;
   date: string;
-  time: string;
-  eventType: string;
+  start_time: string;
+  event_type: EventType;
+  message?: string;
 }
 
-export default function BookingConfirmation({
-  clientName,
-  date,
-  time,
-  eventType,
-}: BookingConfirmationProps) {
-  return (
-    <Html>
-      <Head />
-      <Body style={styles.body}>
-        <Container style={styles.container}>
-          <Heading style={styles.heading}>
-            Confirmation de votre demande
-          </Heading>
+// Type générique pour les résultats d'actions
+export type ActionResult<T> =
+  | { success: true; data: T }
+  | { success: false; error: string };
+```
 
-          <Text style={styles.text}>
-            Bonjour {clientName},
-          </Text>
+---
 
-          <Text style={styles.text}>
-            Nous avons bien reçu votre demande de consultation pour le{' '}
-            <strong>{date}</strong> à <strong>{time}</strong>.
-          </Text>
+## 7. Patterns d'Architecture
 
-          <Section style={styles.details}>
-            <Text style={styles.detailItem}>
-              <strong>Type d'événement :</strong> {eventType}
-            </Text>
-          </Section>
+### 7.1 Pattern Service Layer
 
-          <Hr style={styles.hr} />
+Les **Services** encapsulent la logique métier et les accès à la base de données :
 
-          <Text style={styles.text}>
-            Nous reviendrons vers vous dans les plus brefs délais pour
-            confirmer ce rendez-vous.
-          </Text>
+```typescript
+// lib/services/gallery.service.ts
 
-          <Text style={styles.signature}>
-            L'équipe AureLuz
-          </Text>
-        </Container>
-      </Body>
-    </Html>
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+
+export class GalleryService {
+  // Récupérer toutes les photos
+  static async getAll(category?: string): Promise<Photo[]> {
+    const supabase = await createClient();
+
+    let query = supabase
+      .from('photos')
+      .select('*')
+      .order('display_order', { ascending: true });
+
+    if (category) {
+      query = query.eq('category', category);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }
+
+  // Uploader vers Supabase Storage
+  static async uploadToStorage(file: File): Promise<string> {
+    const supabase = await createAdminClient();  // Admin pour écriture
+
+    // Nom unique pour éviter les collisions
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const extension = file.name.split('.').pop();
+    const filePath = `gallery/${fileName}.${extension}`;
+
+    const { error } = await supabase.storage
+      .from('photos')
+      .upload(filePath, file);
+
+    if (error) throw error;
+
+    // Retourner l'URL publique
+    const { data: { publicUrl } } = supabase.storage
+      .from('photos')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  }
+
+  // Supprimer une photo
+  static async delete(photoId: string): Promise<void> {
+    const supabase = await createAdminClient();
+
+    // 1. Récupérer l'URL pour supprimer du storage
+    const { data: photo } = await supabase
+      .from('photos')
+      .select('url')
+      .eq('id', photoId)
+      .single();
+
+    // 2. Supprimer du storage
+    if (photo?.url) {
+      const filePath = photo.url.split('/').pop();
+      await supabase.storage.from('photos').remove([`gallery/${filePath}`]);
+    }
+
+    // 3. Supprimer de la base de données
+    await supabase.from('photos').delete().eq('id', photoId);
+  }
+}
+```
+
+### 7.2 Pattern Action → Service
+
+Les **Actions** orchestrent les Services et gèrent le cache :
+
+```typescript
+// lib/actions/gallery.actions.ts
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { GalleryService } from '@/lib/services/gallery.service';
+
+export async function uploadPhoto(formData: FormData) {
+  const file = formData.get('file') as File;
+  const category = formData.get('category') as string;
+  const alt = formData.get('alt') as string;
+
+  // Validation
+  if (!file || file.size === 0) {
+    return { success: false, error: 'Fichier requis' };
+  }
+
+  if (file.size > 5 * 1024 * 1024) {  // 5MB max
+    return { success: false, error: 'Fichier trop volumineux (max 5MB)' };
+  }
+
+  try {
+    // 1. Upload vers Storage via le service
+    const url = await GalleryService.uploadToStorage(file);
+
+    // 2. Créer l'entrée en BDD
+    const photo = await GalleryService.create({ url, category, alt });
+
+    // 3. Invalider le cache des pages concernées
+    revalidatePath('/');                  // Page d'accueil (portfolio)
+    revalidatePath('/admin/site');        // Page admin galerie
+
+    return { success: true, photo };
+  } catch (error) {
+    console.error('Upload error:', error);
+    return { success: false, error: 'Erreur lors de l\'upload' };
+  }
+}
+```
+
+### 7.3 Concept Pédagogique : Revalidation du Cache
+
+Next.js met en cache les pages pour les performances. Après une modification, il faut invalider ce cache :
+
+```typescript
+import { revalidatePath, revalidateTag } from 'next/cache';
+
+// Invalider une page spécifique
+revalidatePath('/admin/appointments');
+
+// Invalider par tag (plus granulaire)
+revalidateTag('appointments');
+```
+
+### 7.4 Pattern Lazy Initialization
+
+Pour éviter les erreurs au build (quand les variables d'env ne sont pas disponibles) :
+
+```typescript
+// lib/services/email.service.ts
+
+import { Resend } from 'resend';
+
+// Ne pas initialiser directement au niveau du module
+let resendClient: Resend | null = null;
+
+// Initialisation paresseuse
+function getResendClient(): Resend {
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
+
+export class EmailService {
+  static async sendBookingConfirmation(appointment: Appointment) {
+    const resend = getResendClient();  // Initialisé à la première utilisation
+
+    await resend.emails.send({
+      from: 'AureLuz <contact@aureluzdesign.fr>',
+      to: appointment.client_email,
+      subject: 'Confirmation de votre demande',
+      html: generateEmailHTML(appointment),
+    });
+  }
+}
+```
+
+---
+
+## 8. Flux de Données
+
+### 8.1 Flux de Réservation Complet
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    FLUX DE RÉSERVATION                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Visiteur                          Système                           Admin
+   │                                 │                                 │
+   │  1. Accède à /booking           │                                 │
+   │────────────────────────────────▶│                                 │
+   │                                 │                                 │
+   │  ◄─────────────────────────────│  2. Server Component charge     │
+   │     Calendrier + créneaux       │     - getAvailableSlots()      │
+   │     disponibles                 │     - business_hours           │
+   │                                 │     - blocked_slots            │
+   │                                 │     - existing appointments    │
+   │                                 │                                 │
+   │  3. Sélectionne date + heure    │                                 │
+   │────────────────────────────────▶│                                 │
+   │                                 │                                 │
+   │  ◄─────────────────────────────│  4. Affiche formulaire         │
+   │     Formulaire client           │                                 │
+   │                                 │                                 │
+   │  5. Remplit et soumet           │                                 │
+   │────────────────────────────────▶│                                 │
+   │                                 │                                 │
+   │                                 │  6. Server Action:              │
+   │                                 │     - Valide avec Zod          │
+   │                                 │     - Vérifie disponibilité    │
+   │                                 │     - Insère en BDD            │
+   │                                 │     - Envoie emails            │
+   │                                 │────────────────────────────────▶│
+   │                                 │     Email notification         │
+   │                                 │                                 │
+   │  ◄─────────────────────────────│  7. Retourne confirmation      │
+   │     Page confirmation           │                                 │
+   │     + Email de confirmation     │                                 │
+   │                                 │                                 │
+   │                                 │                                 │
+   │                                 │  8. Admin consulte dashboard   │
+   │                                 │◀────────────────────────────────│
+   │                                 │                                 │
+   │                                 │  9. Admin confirme/refuse      │
+   │                                 │◀────────────────────────────────│
+   │                                 │                                 │
+   │  ◄─────────────────────────────│  10. Email statut update       │
+   │     Email avec nouveau statut   │                                 │
+   │                                 │                                 │
+```
+
+### 8.2 Code du Flux de Réservation
+
+**Étape 1-2 : Chargement des créneaux disponibles**
+
+```typescript
+// lib/actions/booking.actions.ts
+'use server';
+
+export async function getAvailableSlots(date: string): Promise<TimeSlot[]> {
+  const supabase = await createClient();
+  const dayOfWeek = new Date(date).getDay();
+
+  // 1. Récupérer les horaires d'ouverture du jour
+  const { data: hours } = await supabase
+    .from('business_hours')
+    .select('*')
+    .eq('day_of_week', dayOfWeek)
+    .single();
+
+  if (!hours?.is_open) {
+    return [];  // Jour fermé
+  }
+
+  // 2. Récupérer les RDV existants pour cette date
+  const { data: appointments } = await supabase
+    .from('appointments')
+    .select('start_time')
+    .eq('date', date)
+    .neq('status', 'cancelled');
+
+  // 3. Récupérer les créneaux bloqués
+  const { data: blocked } = await supabase
+    .from('blocked_slots')
+    .select('start_time')
+    .eq('date', date);
+
+  // 4. Générer les créneaux avec disponibilité
+  const bookedTimes = new Set([
+    ...appointments?.map(a => a.start_time) || [],
+    ...blocked?.map(b => b.start_time) || [],
+  ]);
+
+  const slots: TimeSlot[] = [];
+  let hour = parseInt(hours.open_time.split(':')[0]);
+  const closeHour = parseInt(hours.close_time.split(':')[0]);
+
+  while (hour < closeHour) {
+    const time = `${hour.toString().padStart(2, '0')}:00`;
+    slots.push({
+      time,
+      available: !bookedTimes.has(time),
+    });
+    hour++;
+  }
+
+  return slots;
+}
+```
+
+**Étape 5-7 : Création du rendez-vous**
+
+```typescript
+// lib/actions/booking.actions.ts
+'use server';
+
+export async function createAppointment(formData: FormData) {
+  const supabase = await createClient();
+
+  // 1. Extraire et valider les données
+  const rawData = {
+    client_name: formData.get('client_name'),
+    client_email: formData.get('client_email'),
+    client_phone: formData.get('client_phone'),
+    date: formData.get('date'),
+    start_time: formData.get('start_time'),
+    event_type: formData.get('event_type'),
+    message: formData.get('message'),
+  };
+
+  try {
+    const validated = bookingSchema.parse(rawData);
+
+    // 2. Vérifier que le créneau est toujours disponible
+    const { data: existing } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('date', validated.date)
+      .eq('start_time', validated.start_time)
+      .neq('status', 'cancelled')
+      .single();
+
+    if (existing) {
+      return { success: false, error: 'Ce créneau vient d\'être réservé' };
+    }
+
+    // 3. Calculer l'heure de fin (1h après)
+    const startHour = parseInt(validated.start_time.split(':')[0]);
+    const end_time = `${(startHour + 1).toString().padStart(2, '0')}:00`;
+
+    // 4. Insérer en base de données
+    const { data: appointment, error } = await supabase
+      .from('appointments')
+      .insert({
+        ...validated,
+        end_time,
+        status: 'pending',
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // 5. Envoyer les emails
+    await Promise.all([
+      EmailService.sendBookingConfirmation(appointment),
+      EmailService.sendAdminNotification(appointment),
+    ]);
+
+    // 6. Invalider le cache
+    revalidatePath('/booking');
+    revalidatePath('/admin/appointments');
+
+    return { success: true, appointment };
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.errors[0].message };
+    }
+    return { success: false, error: 'Erreur lors de la réservation' };
+  }
+}
+```
+
+### 8.3 Flux Analytics (RGPD-Compliant)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    FLUX ANALYTICS                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Visiteur (Browser)                API Route                    Base de données
+       │                              │                              │
+       │  1. Page chargée             │                              │
+       │  ─ FingerprintJS génère ID   │                              │
+       │  ─ Pas de cookies !          │                              │
+       │                              │                              │
+       │  2. POST /api/analytics/track│                              │
+       │  {type: 'session',           │                              │
+       │   fingerprint: 'abc123',     │                              │
+       │   device: 'desktop',         │                              │
+       │   browser: 'Chrome'}         │                              │
+       │─────────────────────────────▶│                              │
+       │                              │  3. Géolocalise via IP       │
+       │                              │  ─ ip-api.com (gratuit)      │
+       │                              │                              │
+       │                              │  4. INSERT analytics_sessions│
+       │                              │─────────────────────────────▶│
+       │                              │                              │
+       │  5. Navigation sur /booking  │                              │
+       │                              │                              │
+       │  6. POST /api/analytics/track│                              │
+       │  {type: 'page_view',         │                              │
+       │   page_path: '/booking'}     │                              │
+       │─────────────────────────────▶│                              │
+       │                              │  7. INSERT analytics_page_views
+       │                              │  8. UPDATE analytics_conversions
+       │                              │     (funnel_step = 2)        │
+       │                              │─────────────────────────────▶│
+       │                              │                              │
+       │  9. Réservation confirmée    │                              │
+       │                              │                              │
+       │  10. POST {type: 'funnel',   │                              │
+       │      step: 7, converted: true}│                             │
+       │─────────────────────────────▶│                              │
+       │                              │  11. UPDATE is_converted=true│
+       │                              │─────────────────────────────▶│
+```
+
+**Pourquoi c'est RGPD-compliant :**
+- Pas de cookies
+- Pas de données personnelles identifiables (PII)
+- Le fingerprint est un hash, pas réversible
+- La géolocalisation est basée sur l'IP (approximative)
+
+---
+
+## 9. Système d'Authentification
+
+### 9.1 Architecture d'Authentification
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    FLUX D'AUTHENTIFICATION                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                         ┌──────────────────┐
+                         │  Supabase Auth   │
+                         │  (Email/Password)│
+                         └────────┬─────────┘
+                                  │
+          ┌───────────────────────┼───────────────────────┐
+          │                       │                       │
+          ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│    Browser      │    │   Middleware    │    │  Server Actions │
+│    (Client)     │    │   (Route Guard) │    │  (Mutations)    │
+├─────────────────┤    ├─────────────────┤    ├─────────────────┤
+│ supabase-js     │    │ Vérifie session │    │ Vérifie session │
+│ stocke tokens   │    │ Redirige si     │    │ avant mutation  │
+│ dans cookies    │    │ non authentifié │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+### 9.2 Middleware de Protection des Routes
+
+```typescript
+// middleware.ts
+import { createServerClient } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from 'next/server';
+
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: { headers: request.headers },
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options) {
+          response.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, options) {
+          response.cookies.set({ name, value: '', ...options });
+        },
+      },
+    }
   );
+
+  const { data: { session } } = await supabase.auth.getSession();
+
+  // Protection des routes /admin/*
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (!session) {
+      // Rediriger vers la page de connexion
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+  }
+
+  // Si déjà connecté et sur /login, rediriger vers /admin
+  if (request.nextUrl.pathname === '/login' && session) {
+    return NextResponse.redirect(new URL('/admin', request.url));
+  }
+
+  return response;
 }
 
-const styles = {
-  body: {
-    backgroundColor: '#f6f9fc',
-    fontFamily: '-apple-system, sans-serif',
-  },
-  container: {
-    backgroundColor: '#ffffff',
-    margin: '0 auto',
-    padding: '40px',
-    maxWidth: '600px',
-  },
-  heading: {
-    color: '#1a1a1a',
-    fontSize: '24px',
-    fontWeight: '600',
-    textAlign: 'center' as const,
-  },
-  text: {
-    color: '#4a4a4a',
-    fontSize: '16px',
-    lineHeight: '24px',
-  },
-  details: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: '8px',
-    padding: '20px',
-    margin: '20px 0',
-  },
-  detailItem: {
-    margin: '8px 0',
-  },
-  hr: {
-    borderColor: '#e6e6e6',
-    margin: '20px 0',
-  },
-  signature: {
-    color: '#888888',
-    fontSize: '14px',
-    fontStyle: 'italic',
-  },
+// Appliquer le middleware uniquement sur ces routes
+export const config = {
+  matcher: ['/admin/:path*', '/login'],
 };
 ```
 
-### C. Constantes de Configuration
+### 9.3 Server Action de Connexion
+
+```typescript
+// lib/actions/auth.actions.ts
+'use server';
+
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+
+export async function login(formData: FormData) {
+  const supabase = await createClient();
+
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    return { error: 'Email ou mot de passe incorrect' };
+  }
+
+  redirect('/admin');
+}
+
+export async function logout() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect('/login');
+}
+
+export async function getSession() {
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  return session;
+}
+```
+
+---
+
+## 10. Système d'Analytics
+
+### 10.1 Architecture Analytics
+
+Le système d'analytics est conçu pour être **RGPD-compliant** tout en fournissant des métriques utiles :
+
+```typescript
+// components/analytics/tracker.tsx
+'use client';
+
+import { useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
+
+export function AnalyticsTracker() {
+  const pathname = usePathname();
+  const sessionId = useRef<string | null>(null);
+  const pageLoadTime = useRef<number>(Date.now());
+
+  useEffect(() => {
+    // Générer un fingerprint unique (sans cookies)
+    const generateFingerprint = async () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx?.fillText('fingerprint', 10, 10);
+
+      const data = [
+        navigator.userAgent,
+        navigator.language,
+        screen.width,
+        screen.height,
+        new Date().getTimezoneOffset(),
+        canvas.toDataURL(),
+      ].join('|');
+
+      // Hasher pour anonymiser
+      const hash = await crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(data)
+      );
+      return Array.from(new Uint8Array(hash))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    };
+
+    const initSession = async () => {
+      const fingerprint = await generateFingerprint();
+
+      // Créer la session côté serveur
+      const response = await fetch('/api/analytics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'session',
+          fingerprint,
+          device_type: getDeviceType(),
+          browser: getBrowser(),
+          os: getOS(),
+          referrer: document.referrer,
+          utm_source: new URLSearchParams(location.search).get('utm_source'),
+        }),
+      });
+
+      const { sessionId: id } = await response.json();
+      sessionId.current = id;
+    };
+
+    initSession();
+  }, []);
+
+  // Tracker les changements de page
+  useEffect(() => {
+    if (!sessionId.current) return;
+
+    // Envoyer le temps passé sur la page précédente
+    const timeOnPage = Date.now() - pageLoadTime.current;
+
+    fetch('/api/analytics/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'page_view',
+        session_id: sessionId.current,
+        page_path: pathname,
+        time_on_previous_page: timeOnPage,
+      }),
+    });
+
+    pageLoadTime.current = Date.now();
+  }, [pathname]);
+
+  return null;  // Composant invisible
+}
+```
+
+### 10.2 Entonnoir de Conversion
+
+Le système track un entonnoir en 7 étapes :
+
+```typescript
+// Étapes du funnel de conversion
+const FUNNEL_STEPS = [
+  { step: 1, name: 'homepage', label: 'Page d\'accueil' },
+  { step: 2, name: 'booking_page', label: 'Page réservation' },
+  { step: 3, name: 'date_selected', label: 'Date sélectionnée' },
+  { step: 4, name: 'time_selected', label: 'Créneau sélectionné' },
+  { step: 5, name: 'form_started', label: 'Formulaire commencé' },
+  { step: 6, name: 'form_submitted', label: 'Formulaire soumis' },
+  { step: 7, name: 'confirmation', label: 'Confirmation' },
+];
+```
+
+---
+
+## 11. Système d'Emails
+
+### 11.1 Architecture Email
+
+```typescript
+// lib/services/email.service.ts
+
+import { Resend } from 'resend';
+
+let resendClient: Resend | null = null;
+
+function getResendClient(): Resend {
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
+
+export class EmailService {
+  // Email de confirmation au client
+  static async sendBookingConfirmation(appointment: Appointment) {
+    const resend = getResendClient();
+
+    await resend.emails.send({
+      from: 'AureLuz Design <contact@aureluzdesign.fr>',
+      to: appointment.client_email,
+      subject: 'Confirmation de votre demande de rendez-vous',
+      html: this.generateConfirmationHTML(appointment),
+    });
+  }
+
+  // Notification à l'admin
+  static async sendAdminNotification(appointment: Appointment) {
+    const resend = getResendClient();
+    const adminEmail = await SettingsService.get('admin_email');
+
+    await resend.emails.send({
+      from: 'AureLuz Design <noreply@aureluzdesign.fr>',
+      to: adminEmail || 'aureluzdesign@gmail.com',
+      subject: `Nouvelle demande de RDV - ${appointment.client_name}`,
+      html: this.generateAdminNotificationHTML(appointment),
+    });
+  }
+
+  // Template HTML responsive
+  private static generateConfirmationHTML(appointment: Appointment): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #c9a227;">Merci pour votre demande !</h1>
+
+            <p>Bonjour ${appointment.client_name},</p>
+
+            <p>Nous avons bien reçu votre demande de consultation pour :</p>
+
+            <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p><strong>Date :</strong> ${formatDate(appointment.date)}</p>
+              <p><strong>Heure :</strong> ${appointment.start_time}</p>
+              <p><strong>Type :</strong> ${appointment.event_type}</p>
+            </div>
+
+            <p>Nous reviendrons vers vous très rapidement pour confirmer ce rendez-vous.</p>
+
+            <p style="color: #888; font-size: 14px; margin-top: 40px;">
+              L'équipe AureLuz Design
+            </p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+}
+```
+
+### 11.2 Détection Gmail pour Templates Simplifiés
+
+Gmail traite différemment les emails HTML complexes. On détecte et adapte :
+
+```typescript
+// lib/services/email.service.ts
+
+static async sendSalonCampaignEmail(
+  to: string,
+  subject: string,
+  content: EmailTemplateContent
+) {
+  const resend = getResendClient();
+  const isGmail = this.isGmailAddress(to);
+
+  // Template différent selon le client email
+  const html = isGmail
+    ? this.generateSimpleTemplate(content)   // Version texte simple
+    : this.generateDesignTemplate(content);  // Version HTML riche
+
+  await resend.emails.send({
+    from: 'AureLuz Design <contact@aureluzdesign.fr>',
+    to,
+    subject,
+    html,
+  });
+}
+
+private static isGmailAddress(email: string): boolean {
+  const domain = email.split('@')[1]?.toLowerCase();
+  return domain === 'gmail.com' || domain === 'googlemail.com';
+}
+```
+
+---
+
+## 12. Bonnes Pratiques
+
+### 12.1 Gestion des Erreurs
+
+```typescript
+// Pattern try-catch avec typage
+export async function safeAction<T>(
+  action: () => Promise<T>
+): Promise<ActionResult<T>> {
+  try {
+    const data = await action();
+    return { success: true, data };
+  } catch (error) {
+    console.error('Action error:', error);
+
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.errors[0].message };
+    }
+
+    if (error instanceof Error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: false, error: 'Une erreur est survenue' };
+  }
+}
+```
+
+### 12.2 Constantes Métier Centralisées
 
 ```typescript
 // lib/utils/constants.ts
 
 export const BUSINESS_CONFIG = {
-  // Horaires par défaut
+  // Horaires
   DEFAULT_OPEN_TIME: '09:00',
   DEFAULT_CLOSE_TIME: '18:00',
+  SLOT_DURATION: 60,  // minutes
 
-  // Durée des créneaux (en minutes)
-  SLOT_DURATION: 60,
-
-  // Délai minimum de réservation (en heures)
-  MIN_BOOKING_NOTICE: 24,
-
-  // Nombre max de mois à l'avance pour réserver
+  // Réservation
+  MIN_BOOKING_NOTICE: 24,  // heures
   MAX_BOOKING_MONTHS_AHEAD: 3,
 
-  // Limite de photos dans la galerie
-  MAX_GALLERY_PHOTOS: 20,
-
-  // Taille max des uploads (en bytes)
-  MAX_UPLOAD_SIZE: 5 * 1024 * 1024, // 5MB
-
-  // Formats d'image acceptés
+  // Upload
+  MAX_UPLOAD_SIZE: 5 * 1024 * 1024,  // 5MB
   ACCEPTED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/webp'],
+  MAX_GALLERY_PHOTOS: 20,
 } as const;
 
 export const EVENT_TYPES = [
-  { value: 'mariage', label: 'Mariage' },
-  { value: 'table', label: 'Art de la table' },
-  { value: 'autre', label: 'Autre événement' },
+  { value: 'signature', label: 'Signature' },
+  { value: 'instants', label: 'Instants' },
+  { value: 'coaching', label: 'Coaching' },
 ] as const;
 
 export const APPOINTMENT_STATUSES = {
@@ -1762,8 +1686,121 @@ export const APPOINTMENT_STATUSES = {
 } as const;
 ```
 
+### 12.3 Utilitaires de Date avec Locale Français
+
+```typescript
+// lib/utils/date.ts
+
+import { format, parseISO } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+// Formater une date en français
+export function formatDate(date: string | Date, pattern = 'dd MMMM yyyy'): string {
+  const d = typeof date === 'string' ? parseISO(date) : date;
+  return format(d, pattern, { locale: fr });
+}
+
+// Exemples d'utilisation :
+// formatDate('2026-01-15') → "15 janvier 2026"
+// formatDate('2026-01-15', 'EEEE dd MMMM') → "jeudi 15 janvier"
+```
+
+### 12.4 Fusion de Classes CSS (Tailwind)
+
+```typescript
+// lib/utils/cn.ts
+
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+// Fusionne les classes en gérant les conflits Tailwind
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+// Exemple d'utilisation :
+// cn('px-4 py-2', isActive && 'bg-primary', 'px-6')
+// → 'py-2 px-6 bg-primary' (px-4 est remplacé par px-6)
+```
+
 ---
 
-**Document préparé pour l'équipe de développement AureLuz**
+## 13. Référence des Fichiers
 
-*Ce document sert de référence technique pour l'implémentation. Toute question ou clarification peut être adressée à l'architecte.*
+### 13.1 Pages Publiques
+
+| Fichier | URL | Description |
+|---------|-----|-------------|
+| `app/(public)/page.tsx` | `/` | Page d'accueil avec toutes les sections |
+| `app/(public)/booking/page.tsx` | `/booking` | Système de réservation |
+| `app/(public)/meeting/page.tsx` | `/meeting` | Lien visioconférence |
+
+### 13.2 Pages Admin
+
+| Fichier | URL | Description |
+|---------|-----|-------------|
+| `app/(admin)/admin/page.tsx` | `/admin` | Dashboard avec statistiques |
+| `app/(admin)/admin/appointments/page.tsx` | `/admin/appointments` | Liste des RDV |
+| `app/(admin)/admin/appointments/[id]/page.tsx` | `/admin/appointments/:id` | Détail d'un RDV |
+| `app/(admin)/admin/devis/page.tsx` | `/admin/devis` | Liste des devis |
+| `app/(admin)/admin/devis/nouveau/page.tsx` | `/admin/devis/nouveau` | Créer un devis |
+| `app/(admin)/admin/devis/[id]/page.tsx` | `/admin/devis/:id` | Voir un devis |
+| `app/(admin)/admin/analytics/page.tsx` | `/admin/analytics` | Tableau de bord analytics |
+| `app/(admin)/admin/site/page.tsx` | `/admin/site` | Gestion du contenu |
+| `app/(admin)/admin/preview/page.tsx` | `/admin/preview` | Aperçu responsive |
+| `app/(admin)/admin/mailing/page.tsx` | `/admin/mailing` | Campagnes email |
+| `app/(admin)/admin/settings/page.tsx` | `/admin/settings` | Paramètres |
+
+### 13.3 Services
+
+| Service | Responsabilité |
+|---------|---------------|
+| `EmailService` | Envoi d'emails (confirmation, notification, campagnes) |
+| `GalleryService` | Upload, gestion et ordonnancement des photos |
+| `QuotesService` | CRUD devis, génération PDF, statistiques |
+| `SettingsService` | Paramètres site (logo, contact, réseaux sociaux) |
+| `SiteServicesService` | Services configurables (Signature, Instants, Coaching) |
+| `EmailTemplatesService` | Templates email éditables |
+| `GeolocationService` | Géolocalisation IP pour analytics |
+
+### 13.4 Migrations SQL
+
+| Migration | Tables créées |
+|-----------|---------------|
+| `001` | `appointments` - Rendez-vous |
+| `002` | `blocked_slots` - Créneaux bloqués |
+| `003` | `photos` - Galerie |
+| `004` | `business_hours` - Horaires |
+| `005` | Bucket Storage `photos` |
+| `006` | `analytics_*` - 5 tables analytics |
+| `007` | `quotes` - Devis |
+| `008` | `services` - Services configurables |
+| `009` | `site_settings` - Paramètres |
+| `010` | `email_templates` - Templates email |
+| `011` | Ajout paramètres contact |
+| `20240106*` | `testimonials` - Témoignages |
+
+---
+
+## Changelog
+
+### Version 2.0 (Janvier 2026)
+- Ajout système d'analytics RGPD-compliant
+- Ajout gestion des devis avec PDF
+- Ajout campagnes email avec templates
+- Ajout aperçu responsive du site
+- Ajout témoignages clients
+- Ajout services configurables
+- Documentation pédagogique complète
+
+### Version 1.0 (Initial)
+- Site vitrine avec sections
+- Système de réservation
+- Back-office admin basique
+- Gestion galerie photos
+
+---
+
+**Document maintenu par l'équipe de développement AureLuz Design**
+
+*Ce document est mis à jour à chaque évolution majeure de l'application.*
