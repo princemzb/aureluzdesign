@@ -1,5 +1,16 @@
 # Instructions pour Claude Code
 
+## Avant toute implémentation
+
+**OBLIGATOIRE** : Avant de commencer une nouvelle fonctionnalité ou correction de bug :
+
+1. **Reformuler** ce qui a été compris de la demande
+2. **Lister** les fichiers qui seront impactés
+3. **Présenter le plan d'action** étape par étape
+4. **Attendre la validation** de l'utilisateur avant de commencer
+
+Ne JAMAIS commencer à coder sans validation explicite du plan.
+
 ## Commits Git
 
 - Ne JAMAIS ajouter de ligne "Co-Authored-By" dans les messages de commit
