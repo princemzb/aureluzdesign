@@ -6,15 +6,18 @@ import {
   ArrowLeft,
   Edit,
   Send,
-  CheckCircle,
+  Check,
   XCircle,
   FileText,
   Clock,
+  CreditCard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getQuote } from '@/lib/actions/quotes.actions';
+import { getQuotePayments, getQuotePaymentSummary } from '@/lib/actions/quote-payments.actions';
 import { QuotePreview } from '@/components/admin/quote-preview';
 import { QuoteActions } from '@/components/admin/quote-actions';
+import { QuotePaymentsSection } from './quote-payments-section';
 import type { QuoteStatus } from '@/lib/types';
 
 interface PageProps {
@@ -37,7 +40,12 @@ const statusConfig: Record<
   },
   accepted: {
     label: 'Accepté',
-    icon: CheckCircle,
+    icon: Check,
+    className: 'bg-indigo-100 text-indigo-700',
+  },
+  paid: {
+    label: 'Payé',
+    icon: CreditCard,
     className: 'bg-green-100 text-green-700',
   },
   rejected: {
@@ -59,6 +67,14 @@ export default async function ViewDevisPage({ params }: PageProps) {
   if (!quote) {
     notFound();
   }
+
+  // Fetch payments
+  const [paymentsResult, summaryResult] = await Promise.all([
+    getQuotePayments(id),
+    getQuotePaymentSummary(id),
+  ]);
+  const payments = paymentsResult.success ? paymentsResult.data || [] : [];
+  const summary = summaryResult.success ? summaryResult.data || null : null;
 
   const status = statusConfig[quote.status];
   const StatusIcon = status.icon;
@@ -111,6 +127,21 @@ export default async function ViewDevisPage({ params }: PageProps) {
 
       {/* Actions */}
       <QuoteActions quote={quote} />
+
+      {/* Payments Section */}
+      {(quote.status === 'sent' || quote.status === 'accepted' || quote.status === 'paid' || payments.length > 0) && (
+        <div className="bg-background rounded-xl border border-border p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <CreditCard className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Échéancier de paiement</h2>
+          </div>
+          <QuotePaymentsSection
+            payments={payments}
+            summary={summary}
+            quoteStatus={quote.status}
+          />
+        </div>
+      )}
 
       {/* Preview */}
       <div className="bg-background rounded-xl border border-border p-4">

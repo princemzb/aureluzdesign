@@ -2,18 +2,19 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
-  Eye,
   Edit,
   Trash2,
   MoreHorizontal,
   Send,
-  CheckCircle,
   XCircle,
   Clock,
   FileText,
+  CreditCard,
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { deleteQuote, updateQuoteStatus } from '@/lib/actions/quotes.actions';
@@ -39,7 +40,12 @@ const statusConfig: Record<
   },
   accepted: {
     label: 'Accepté',
-    icon: CheckCircle,
+    icon: Check,
+    className: 'bg-indigo-100 text-indigo-700',
+  },
+  paid: {
+    label: 'Payé',
+    icon: CreditCard,
     className: 'bg-green-100 text-green-700',
   },
   rejected: {
@@ -55,8 +61,13 @@ const statusConfig: Record<
 };
 
 export function QuotesList({ quotes }: QuotesListProps) {
+  const router = useRouter();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  const handleRowClick = (id: string) => {
+    router.push(`/admin/devis/${id}`);
+  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce devis ?')) return;
@@ -106,10 +117,11 @@ export function QuotesList({ quotes }: QuotesListProps) {
               return (
                 <tr
                   key={quote.id}
-                  className="border-b border-border last:border-0 hover:bg-secondary/20"
+                  className="border-b border-border last:border-0 hover:bg-secondary/30 cursor-pointer transition-colors"
+                  onClick={() => handleRowClick(quote.id)}
                 >
                   <td className="p-4">
-                    <span className="font-mono font-medium">
+                    <span className="font-mono font-medium text-primary">
                       {quote.quote_number}
                     </span>
                   </td>
@@ -140,13 +152,8 @@ export function QuotesList({ quotes }: QuotesListProps) {
                       {status.label}
                     </span>
                   </td>
-                  <td className="p-4">
+                  <td className="p-4" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-2">
-                      <Link href={`/admin/devis/${quote.id}`}>
-                        <Button variant="ghost" size="icon" title="Voir">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </Link>
                       <Link href={`/admin/devis/${quote.id}/modifier`}>
                         <Button variant="ghost" size="icon" title="Modifier">
                           <Edit className="h-4 w-4" />
@@ -183,12 +190,12 @@ export function QuotesList({ quotes }: QuotesListProps) {
                               {quote.status === 'sent' && (
                                 <>
                                   <button
-                                    className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2 text-green-600"
+                                    className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2 text-indigo-600"
                                     onClick={() =>
                                       handleStatusChange(quote.id, 'accepted')
                                     }
                                   >
-                                    <CheckCircle className="h-4 w-4" />
+                                    <Check className="h-4 w-4" />
                                     Marquer comme accepté
                                   </button>
                                   <button
@@ -201,6 +208,17 @@ export function QuotesList({ quotes }: QuotesListProps) {
                                     Marquer comme refusé
                                   </button>
                                 </>
+                              )}
+                              {quote.status === 'accepted' && (
+                                <button
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2 text-green-600"
+                                  onClick={() =>
+                                    handleStatusChange(quote.id, 'paid')
+                                  }
+                                >
+                                  <CreditCard className="h-4 w-4" />
+                                  Marquer comme payé
+                                </button>
                               )}
                               <button
                                 className="w-full px-4 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2 text-red-600"

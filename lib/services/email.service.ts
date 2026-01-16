@@ -2,9 +2,11 @@ import { Resend } from 'resend';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { BookingFormData } from '@/lib/validators/booking.schema';
+import type { Quote, Invoice, QuotePayment, QuotePaymentSummary } from '@/lib/types';
 import { EVENT_TYPES } from '@/lib/utils/constants';
 import { EmailTemplatesService, type EmailTemplateContent } from './email-templates.service';
 import { SettingsService } from './settings.service';
+import { InvoicesService } from './invoices.service';
 
 // Resend client - initialisation paresseuse pour éviter les erreurs au build
 let resendClient: Resend | null = null;
@@ -76,6 +78,190 @@ async function sendEmail({
     console.error('❌ Erreur envoi email:', error);
     return { success: false, error: 'Failed to send email' };
   }
+}
+
+// Email sender with attachments using Resend
+async function sendEmailWithAttachment({
+  to,
+  subject,
+  html,
+  fromEmail,
+  attachments,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+  fromEmail?: string;
+  attachments?: Array<{ filename: string; content: string | Buffer }>;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    console.log(`📧 Envoi email avec pièce jointe à ${to}...`);
+
+    const from = fromEmail || DEFAULT_FROM_EMAIL;
+
+    const { data, error } = await getResendClient().emails.send({
+      from,
+      to,
+      subject,
+      html,
+      attachments: attachments?.map((att) => ({
+        filename: att.filename,
+        content: typeof att.content === 'string' ? Buffer.from(att.content) : att.content,
+      })),
+    });
+
+    if (error) {
+      console.error('❌ Erreur Resend:', error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`✅ Email avec pièce jointe envoyé avec succès (ID: ${data?.id})`);
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Erreur envoi email avec pièce jointe:', error);
+    return { success: false, error: 'Failed to send email' };
+  }
+}
+
+// Generate invoice HTML for email attachment
+function generateInvoicePdfHtml(invoice: Invoice, quote: Quote): string {
+  const invoiceDate = format(new Date(invoice.created_at), 'dd MMMM yyyy', { locale: fr });
+  const eventDateStr = quote.event_date
+    ? format(parseISO(quote.event_date), 'dd/MM/yyyy', { locale: fr })
+    : null;
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Facture ${invoice.invoice_number}</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 12px; line-height: 1.5; color: #333; padding: 40px; max-width: 800px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 2px solid #c9a227; }
+        .logo { font-size: 28px; font-weight: bold; color: #c9a227; }
+        .logo-subtitle { font-size: 12px; color: #666; margin-top: 4px; }
+        .company-info { text-align: right; font-size: 11px; color: #666; line-height: 1.8; }
+        .invoice-title { font-size: 32px; font-weight: bold; color: #1a1a1a; margin-bottom: 30px; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+        .info-section { }
+        .section-title { font-size: 10px; font-weight: bold; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        .info-row { margin-bottom: 8px; }
+        .info-label { color: #666; }
+        .info-value { font-weight: 600; color: #1a1a1a; }
+        .table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        .table th { background: #f8f8f8; padding: 14px 16px; text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e5e5e5; }
+        .table td { padding: 16px; border-bottom: 1px solid #eee; }
+        .table .amount { text-align: right; font-weight: 500; }
+        .totals { width: 280px; margin-left: auto; background: #f8f8f8; border-radius: 8px; padding: 20px; }
+        .total-row { display: flex; justify-content: space-between; padding: 8px 0; }
+        .total-row.subtotal { color: #666; }
+        .total-row.final { font-size: 18px; font-weight: bold; color: #1a1a1a; border-top: 2px solid #c9a227; padding-top: 16px; margin-top: 8px; }
+        .payment-badge { display: inline-block; background: #dcfce7; color: #166534; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 30px; }
+        .payment-info { background: #f9f9f9; padding: 20px; border-radius: 8px; margin-top: 20px; font-size: 11px; color: #666; }
+        .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #eee; font-size: 10px; color: #999; text-align: center; }
+        @media print {
+          body { padding: 20px; }
+          .payment-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div>
+          <div class="logo">AureLuz Design</div>
+          <div class="logo-subtitle">Décoration Événementielle</div>
+        </div>
+        <div class="company-info">
+          <p><strong>AureLuz Design</strong></p>
+          <p>contact@aureluzdesign.fr</p>
+          <p>+33 6 61 43 43 65</p>
+          <p>www.aureluzdesign.fr</p>
+        </div>
+      </div>
+
+      <h1 class="invoice-title">Facture ${invoice.invoice_number}</h1>
+
+      <div class="info-grid">
+        <div class="info-section">
+          <div class="section-title">Facturé à</div>
+          <div class="info-row">
+            <span class="info-value" style="font-size: 16px;">${invoice.client_name}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">${invoice.client_email}</span>
+          </div>
+        </div>
+        <div class="info-section">
+          <div class="section-title">Informations</div>
+          <div class="info-row">
+            <span class="info-label">Date : </span>
+            <span class="info-value">${invoiceDate}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Devis : </span>
+            <span class="info-value">${quote.quote_number}</span>
+          </div>
+          ${eventDateStr ? `
+          <div class="info-row">
+            <span class="info-label">Événement : </span>
+            <span class="info-value">${eventDateStr}</span>
+          </div>
+          ` : ''}
+        </div>
+      </div>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width: 70%;">Description</th>
+            <th class="amount">Montant HT</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <strong>Acompte de ${quote.deposit_percent}%</strong><br>
+              <span style="color: #666; font-size: 11px;">Devis ${quote.quote_number}${quote.event_type ? ` - ${quote.event_type}` : ''}</span>
+            </td>
+            <td class="amount">${invoice.amount.toFixed(2)} EUR</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="totals">
+        <div class="total-row subtotal">
+          <span>Sous-total HT</span>
+          <span>${invoice.amount.toFixed(2)} EUR</span>
+        </div>
+        <div class="total-row subtotal">
+          <span>TVA (${quote.vat_rate}%)</span>
+          <span>${invoice.vat_amount.toFixed(2)} EUR</span>
+        </div>
+        <div class="total-row final">
+          <span>Total TTC</span>
+          <span>${invoice.total_amount.toFixed(2)} EUR</span>
+        </div>
+      </div>
+
+      <div style="text-align: center;">
+        <div class="payment-badge">✓ Payé par carte bancaire</div>
+      </div>
+
+      <div class="payment-info">
+        <p><strong>Référence de paiement :</strong> ${invoice.stripe_payment_intent_id || 'N/A'}</p>
+        <p><strong>Mode de paiement :</strong> Carte bancaire via Stripe</p>
+        <p><strong>Date de paiement :</strong> ${invoiceDate}</p>
+      </div>
+
+      <div class="footer">
+        <p><strong>AureLuz Design</strong> - Décoration Événementielle sur mesure</p>
+        <p style="margin-top: 8px;">Merci pour votre confiance !</p>
+      </div>
+    </body>
+    </html>
+  `;
 }
 
 export async function sendBookingConfirmation(
@@ -486,6 +672,511 @@ export async function sendStatusUpdate(
 
           <div class="footer">
             <p>© ${new Date().getFullYear()} AureLuz. Tous droits réservés.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+  });
+}
+
+// ============================================
+// Invoice and Quote Payment Emails
+// ============================================
+
+/**
+ * Send invoice email after successful payment with PDF attachment
+ */
+export async function sendInvoiceEmail(
+  quote: Quote,
+  invoice: Invoice
+): Promise<{ success: boolean; error?: string }> {
+  const emailSettings = await getEmailSettings();
+  const invoiceDate = format(new Date(invoice.created_at), 'dd MMMM yyyy', { locale: fr });
+  const eventDateStr = quote.event_date
+    ? format(parseISO(quote.event_date), 'dd/MM/yyyy', { locale: fr })
+    : null;
+
+  // Generate real PDF using pdf-lib
+  let pdfBuffer: Buffer;
+  try {
+    pdfBuffer = await InvoicesService.generatePdfBuffer(invoice, quote);
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    // Fallback to HTML if PDF generation fails
+    const pdfHtml = generateInvoicePdfHtml(invoice, quote);
+    return sendEmailWithAttachment({
+      to: invoice.client_email,
+      fromEmail: emailSettings.fromEmail,
+      subject: `Votre facture ${invoice.invoice_number} - AureLuz Design`,
+      html: getInvoiceEmailHtml(invoice, quote, invoiceDate, eventDateStr),
+      attachments: [
+        {
+          filename: `Facture-${invoice.invoice_number}.html`,
+          content: pdfHtml,
+        },
+      ],
+    });
+  }
+
+  return sendEmailWithAttachment({
+    to: invoice.client_email,
+    fromEmail: emailSettings.fromEmail,
+    subject: `Votre facture ${invoice.invoice_number} - AureLuz Design`,
+    html: getInvoiceEmailHtml(invoice, quote, invoiceDate, eventDateStr),
+    attachments: [
+      {
+        filename: `Facture-${invoice.invoice_number}.pdf`,
+        content: pdfBuffer,
+      },
+    ],
+  });
+}
+
+// Helper function to get invoice email HTML
+function getInvoiceEmailHtml(invoice: Invoice, quote: Quote, invoiceDate: string, eventDateStr: string | null): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #FDF8F3;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #FDF8F3;">
+        <tr>
+          <td align="center" style="padding: 40px 20px;">
+            <table width="600" cellpadding="0" cellspacing="0" style="background: white; border-radius: 16px; overflow: hidden;">
+              <!-- Header -->
+              <tr>
+                <td style="background: #1a1a1a; color: white; padding: 40px 30px; text-align: center;">
+                  <div style="font-family: Georgia, serif; font-size: 28px; color: #c9a227; margin-bottom: 8px;">AureLuz Design</div>
+                  <p style="color: #999; margin: 0; font-size: 14px;">Décoration sur mesure</p>
+                </td>
+              </tr>
+
+              <!-- Content -->
+              <tr>
+                <td style="padding: 40px 30px; text-align: center;">
+                  <div style="background: #dcfce7; color: #166534; padding: 12px 24px; border-radius: 50px; display: inline-block; font-weight: 600; margin-bottom: 30px;">
+                    ✓ Paiement confirmé
+                  </div>
+
+                  <h1 style="font-size: 24px; margin: 0 0 10px 0; color: #1a1a1a;">Merci pour votre confiance !</h1>
+                  <p style="color: #666; margin: 0 0 30px 0;">
+                    Votre paiement a été reçu avec succès. Vous trouverez votre facture en pièce jointe.
+                  </p>
+
+                  <!-- Details table -->
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background: #f9f9f9; border-radius: 12px;">
+                    <tr>
+                      <td style="padding: 25px;">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td style="color: #666; font-size: 14px; padding: 12px 0; border-bottom: 1px solid #eee;">Facture</td>
+                            <td style="font-weight: 600; color: #1a1a1a; padding: 12px 0; border-bottom: 1px solid #eee; text-align: right;">${invoice.invoice_number}</td>
+                          </tr>
+                          <tr>
+                            <td style="color: #666; font-size: 14px; padding: 12px 0; border-bottom: 1px solid #eee;">Devis</td>
+                            <td style="font-weight: 600; color: #1a1a1a; padding: 12px 0; border-bottom: 1px solid #eee; text-align: right;">${quote.quote_number}</td>
+                          </tr>
+                          <tr>
+                            <td style="color: #666; font-size: 14px; padding: 12px 0; border-bottom: 1px solid #eee;">Date</td>
+                            <td style="font-weight: 600; color: #1a1a1a; padding: 12px 0; border-bottom: 1px solid #eee; text-align: right;">${invoiceDate}</td>
+                          </tr>
+                          ${eventDateStr ? `
+                          <tr>
+                            <td style="color: #666; font-size: 14px; padding: 12px 0; border-bottom: 1px solid #eee;">Événement</td>
+                            <td style="font-weight: 600; color: #1a1a1a; padding: 12px 0; border-bottom: 1px solid #eee; text-align: right;">${eventDateStr}</td>
+                          </tr>
+                          ` : ''}
+                        </table>
+
+                        <!-- Amount box -->
+                        <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 20px;">
+                          <tr>
+                            <td style="background: #c9a227; color: white; padding: 15px 20px; border-radius: 8px;">
+                              <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                  <td style="font-size: 14px;">Montant payé</td>
+                                  <td style="font-size: 20px; font-weight: bold; text-align: right;">${invoice.total_amount.toFixed(2)} EUR</td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p style="margin-top: 30px; color: #666;">
+                    Cet acompte de ${quote.deposit_percent}% confirme votre commande.<br>
+                    Le solde sera à régler selon les conditions convenues.
+                  </p>
+
+                  <p style="margin-top: 30px; color: #1a1a1a;">
+                    Nous avons hâte de collaborer avec vous pour créer un événement inoubliable !
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td style="text-align: center; padding: 25px 30px; background: #fafafa; font-size: 12px; color: #999;">
+                  <p style="margin: 0;">AureLuz Design - Décoration Événementielle</p>
+                  <p style="margin: 5px 0 0;">contact@aureluzdesign.fr | www.aureluzdesign.fr</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Send quote payment link to client
+ */
+export async function sendQuotePaymentLink(
+  quote: Quote
+): Promise<{ success: boolean; error?: string }> {
+  const emailSettings = await getEmailSettings();
+  const paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/devis/${quote.validation_token}`;
+  const depositAmount = quote.deposit_amount || Math.round(quote.total * (quote.deposit_percent || 30) / 100);
+
+  return sendEmail({
+    to: quote.client_email,
+    fromEmail: emailSettings.fromEmail,
+    subject: `Validez votre devis ${quote.quote_number} - AureLuz Design`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #FDF8F3; }
+          .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
+          .card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+          .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: white; padding: 40px 30px; text-align: center; }
+          .logo { font-family: Georgia, serif; font-size: 28px; font-weight: 400; color: #c9a227; margin-bottom: 8px; }
+          .content { padding: 40px 30px; }
+          .cta { display: inline-block; background: linear-gradient(135deg, #c9a227 0%, #d4af37 100%); color: white; padding: 16px 40px; border-radius: 50px; text-decoration: none; font-weight: 600; font-size: 16px; }
+          .amount-box { background: #f9f9f9; border-radius: 12px; padding: 25px; margin: 25px 0; text-align: center; }
+          .footer { text-align: center; padding: 25px 30px; background: #fafafa; font-size: 12px; color: #999; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="card">
+            <div class="header">
+              <div class="logo">AureLuz Design</div>
+              <p style="color: #999; margin: 0;">Décoration sur mesure</p>
+            </div>
+
+            <div class="content">
+              <p>Bonjour ${quote.client_name},</p>
+
+              <p>
+                Merci d'avoir choisi AureLuz Design pour votre événement !
+                Vous pouvez maintenant valider votre devis en ligne.
+              </p>
+
+              <div class="amount-box">
+                <p style="color: #666; margin: 0 0 10px;">Montant de l'acompte (${quote.deposit_percent}%)</p>
+                <p style="font-size: 32px; font-weight: bold; color: #c9a227; margin: 0;">
+                  ${depositAmount.toFixed(2)} EUR
+                </p>
+                <p style="color: #666; font-size: 14px; margin: 15px 0 0;">
+                  sur un total de ${quote.total.toFixed(2)} EUR
+                </p>
+              </div>
+
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${paymentUrl}" class="cta">
+                  Valider et payer mon devis
+                </a>
+              </div>
+
+              <p style="font-size: 14px; color: #666; text-align: center;">
+                Paiement sécurisé par carte bancaire
+              </p>
+
+              <p style="margin-top: 30px;">À très bientôt,<br><strong>L'équipe AureLuz</strong></p>
+            </div>
+
+            <div class="footer">
+              <p style="margin: 0;">AureLuz Design - Décoration Événementielle</p>
+              <p style="margin: 5px 0 0;">contact@aureluzdesign.fr | www.aureluzdesign.fr</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+  });
+}
+
+/**
+ * Send payment confirmation email for multi-payment system
+ */
+export async function sendPaymentConfirmationEmail(
+  quote: Quote,
+  payment: QuotePayment,
+  invoice: Invoice,
+  summary: QuotePaymentSummary | null
+): Promise<{ success: boolean; error?: string }> {
+  const emailSettings = await getEmailSettings();
+  const invoiceDate = format(new Date(invoice.created_at), 'dd MMMM yyyy', { locale: fr });
+  const isFullyPaid = summary?.payment_status === 'fully_paid';
+  const progressPercent = summary ? Math.round((summary.total_paid / summary.total) * 100) : 0;
+
+  // Generate real PDF using pdf-lib
+  let pdfBuffer: Buffer;
+  let attachmentFilename: string;
+  try {
+    pdfBuffer = await InvoicesService.generatePdfBuffer(invoice, quote);
+    attachmentFilename = `Facture-${invoice.invoice_number}.pdf`;
+  } catch (error) {
+    console.error('Error generating PDF for payment confirmation:', error);
+    // Fallback to HTML if PDF generation fails
+    const pdfHtml = generateInvoicePdfHtml(invoice, quote);
+    pdfBuffer = Buffer.from(pdfHtml);
+    attachmentFilename = `Facture-${invoice.invoice_number}.html`;
+  }
+
+  return sendEmailWithAttachment({
+    to: quote.client_email,
+    fromEmail: emailSettings.fromEmail,
+    subject: `${payment.label} reçu - Devis ${quote.quote_number} - AureLuz Design`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #FDF8F3;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #FDF8F3;">
+          <tr>
+            <td align="center" style="padding: 40px 20px;">
+              <table width="600" cellpadding="0" cellspacing="0" style="background: white; border-radius: 16px; overflow: hidden;">
+                <!-- Header -->
+                <tr>
+                  <td style="background: #1a1a1a; color: white; padding: 40px 30px; text-align: center;">
+                    <div style="font-family: Georgia, serif; font-size: 28px; color: #c9a227; margin-bottom: 8px;">AureLuz Design</div>
+                    <p style="color: #999; margin: 0; font-size: 14px;">Décoration sur mesure</p>
+                  </td>
+                </tr>
+
+                <!-- Content -->
+                <tr>
+                  <td style="padding: 40px 30px; text-align: center;">
+                    <div style="background: #dcfce7; color: #166534; padding: 12px 24px; border-radius: 50px; display: inline-block; font-weight: 600; margin-bottom: 30px;">
+                      ✓ ${payment.label} confirmé
+                    </div>
+
+                    <h1 style="font-size: 24px; margin: 0 0 10px 0; color: #1a1a1a;">
+                      ${isFullyPaid ? 'Paiement complet reçu !' : 'Merci pour votre paiement !'}
+                    </h1>
+                    <p style="color: #666; margin: 0 0 30px 0;">
+                      Vous trouverez votre facture en pièce jointe.
+                    </p>
+
+                    <!-- Details table -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background: #f9f9f9; border-radius: 12px;">
+                      <tr>
+                        <td style="padding: 25px;">
+                          <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="color: #666; font-size: 14px; padding: 12px 0; border-bottom: 1px solid #eee;">Facture</td>
+                              <td style="font-weight: 600; color: #1a1a1a; padding: 12px 0; border-bottom: 1px solid #eee; text-align: right;">${invoice.invoice_number}</td>
+                            </tr>
+                            <tr>
+                              <td style="color: #666; font-size: 14px; padding: 12px 0; border-bottom: 1px solid #eee;">Devis</td>
+                              <td style="font-weight: 600; color: #1a1a1a; padding: 12px 0; border-bottom: 1px solid #eee; text-align: right;">${quote.quote_number}</td>
+                            </tr>
+                            <tr>
+                              <td style="color: #666; font-size: 14px; padding: 12px 0; border-bottom: 1px solid #eee;">Date</td>
+                              <td style="font-weight: 600; color: #1a1a1a; padding: 12px 0; border-bottom: 1px solid #eee; text-align: right;">${invoiceDate}</td>
+                            </tr>
+                          </table>
+
+                          <!-- Amount box -->
+                          <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 20px;">
+                            <tr>
+                              <td style="background: #c9a227; color: white; padding: 15px 20px; border-radius: 8px;">
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                  <tr>
+                                    <td style="font-size: 14px;">${payment.label}</td>
+                                    <td style="font-size: 20px; font-weight: bold; text-align: right;">${payment.amount.toFixed(2)} EUR</td>
+                                  </tr>
+                                </table>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+
+                    ${summary ? `
+                    <!-- Progress section -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 25px;">
+                      <tr>
+                        <td style="text-align: left;">
+                          <p style="font-size: 14px; color: #666; margin: 0 0 8px 0;">
+                            Progression des paiements (${summary.paid_payments}/${summary.total_payments})
+                          </p>
+                          <table width="100%" cellpadding="0" cellspacing="0" style="background: #e5e5e5; border-radius: 10px; height: 12px;">
+                            <tr>
+                              <td style="background: #c9a227; border-radius: 10px; width: ${progressPercent}%;"></td>
+                              <td></td>
+                            </tr>
+                          </table>
+                          <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 8px;">
+                            <tr>
+                              <td style="font-size: 14px; color: #166534;">${summary.total_paid.toFixed(2)} EUR payés</td>
+                              <td style="font-size: 14px; color: #666; text-align: right;">${summary.remaining_amount.toFixed(2)} EUR restants</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                    ` : ''}
+
+                    <p style="margin-top: 30px; color: #666;">
+                      ${isFullyPaid
+                        ? 'Tous les paiements ont été reçus. Nous avons hâte de collaborer avec vous !'
+                        : 'Nous vous contacterons pour le prochain paiement selon l\'échéancier convenu.'
+                      }
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="text-align: center; padding: 25px 30px; background: #fafafa; font-size: 12px; color: #999;">
+                    <p style="margin: 0;">AureLuz Design - Décoration Événementielle</p>
+                    <p style="margin: 5px 0 0;">contact@aureluzdesign.fr | www.aureluzdesign.fr</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `,
+    attachments: [
+      {
+        filename: attachmentFilename,
+        content: pdfBuffer,
+      },
+    ],
+  });
+}
+
+/**
+ * Send payment request email for a specific installment
+ */
+export async function sendPaymentRequestEmail(
+  quote: Quote,
+  payment: QuotePayment,
+  summary: QuotePaymentSummary | null
+): Promise<{ success: boolean; error?: string }> {
+  const emailSettings = await getEmailSettings();
+  const paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/paiement/${payment.validation_token}`;
+  const dueDateStr = payment.due_date
+    ? format(new Date(payment.due_date), 'dd MMMM yyyy', { locale: fr })
+    : null;
+
+  return sendEmail({
+    to: quote.client_email,
+    fromEmail: emailSettings.fromEmail,
+    subject: `${payment.label} à régler - Devis ${quote.quote_number} - AureLuz Design`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #FDF8F3; }
+          .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
+          .card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+          .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: white; padding: 40px 30px; text-align: center; }
+          .logo { font-family: Georgia, serif; font-size: 28px; font-weight: 400; color: #c9a227; margin-bottom: 8px; }
+          .content { padding: 40px 30px; }
+          .cta { display: inline-block; background: linear-gradient(135deg, #c9a227 0%, #d4af37 100%); color: white; padding: 16px 40px; border-radius: 50px; text-decoration: none; font-weight: 600; font-size: 16px; }
+          .amount-box { background: #f9f9f9; border-radius: 12px; padding: 25px; margin: 25px 0; text-align: center; }
+          .progress-bar { background: #e5e5e5; border-radius: 10px; height: 12px; overflow: hidden; margin: 20px 0; }
+          .progress-fill { background: linear-gradient(135deg, #c9a227 0%, #d4af37 100%); height: 100%; border-radius: 10px; }
+          .footer { text-align: center; padding: 25px 30px; background: #fafafa; font-size: 12px; color: #999; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="card">
+            <div class="header">
+              <div class="logo">AureLuz Design</div>
+              <p style="color: #999; margin: 0;">Décoration sur mesure</p>
+            </div>
+
+            <div class="content">
+              <p>Bonjour ${quote.client_name},</p>
+
+              <p>
+                ${payment.payment_number === 1
+                  ? 'Merci d\'avoir choisi AureLuz Design pour votre événement ! Vous pouvez maintenant régler l\'acompte pour confirmer votre commande.'
+                  : `Il est temps de procéder au règlement de votre ${payment.label.toLowerCase()}.`
+                }
+              </p>
+
+              <div class="amount-box">
+                <p style="color: #666; margin: 0 0 5px; font-size: 14px;">${payment.label}</p>
+                ${payment.percentage ? `<p style="color: #999; margin: 0 0 10px; font-size: 12px;">(${payment.percentage}% du total)</p>` : ''}
+                <p style="font-size: 36px; font-weight: bold; color: #c9a227; margin: 0;">
+                  ${payment.amount.toFixed(2)} EUR
+                </p>
+                ${dueDateStr ? `
+                <p style="color: #666; font-size: 14px; margin: 15px 0 0;">
+                  À régler avant le ${dueDateStr}
+                </p>
+                ` : ''}
+              </div>
+
+              ${summary ? `
+              <div style="margin: 25px 0;">
+                <p style="font-size: 14px; color: #666; margin-bottom: 8px;">
+                  Progression des paiements
+                </p>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: ${(summary.total_paid / summary.total) * 100}%"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                  <span style="color: #166534;">${summary.total_paid.toFixed(2)} EUR payés</span>
+                  <span style="color: #666;">Total: ${summary.total.toFixed(2)} EUR</span>
+                </div>
+              </div>
+              ` : ''}
+
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${paymentUrl}" class="cta">
+                  Payer ${payment.amount.toFixed(2)} EUR
+                </a>
+              </div>
+
+              <p style="font-size: 14px; color: #666; text-align: center;">
+                Paiement sécurisé par carte bancaire
+              </p>
+
+              <p style="margin-top: 30px;">À très bientôt,<br><strong>L'équipe AureLuz</strong></p>
+            </div>
+
+            <div class="footer">
+              <p style="margin: 0;">AureLuz Design - Décoration Événementielle</p>
+              <p style="margin: 5px 0 0;">contact@aureluzdesign.fr | www.aureluzdesign.fr</p>
+            </div>
           </div>
         </div>
       </body>

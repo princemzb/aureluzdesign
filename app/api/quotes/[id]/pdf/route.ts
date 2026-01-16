@@ -7,6 +7,17 @@ import { EVENT_TYPES } from '@/lib/utils/constants';
 import fs from 'fs';
 import path from 'path';
 
+// Helper function to format currency without special Unicode spaces that WinAnsi can't encode
+function formatCurrencyForPdf(amount: number): string {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+  })
+    .format(amount)
+    .replace(/\u202F/g, ' ') // Replace narrow no-break space with regular space
+    .replace(/\u00A0/g, ' '); // Replace no-break space with regular space
+}
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
@@ -55,7 +66,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       const logoDims = logoImage.scale(logoScale);
       page.drawImage(logoImage, {
         x: margin,
-        y: y - logoDims.height,
+        y: y - logoDims.height + 45,
         width: logoDims.width,
         height: logoDims.height,
       });
@@ -264,35 +275,23 @@ export async function GET(request: Request, { params }: RouteParams) {
       xPos += colWidths[1];
 
       // Unit price
-      page.drawText(
-        new Intl.NumberFormat('fr-FR', {
-          style: 'currency',
-          currency: 'EUR',
-        }).format(item.unit_price),
-        {
-          x: xPos,
-          y: rowY + 8,
-          size: 9,
-          font: helvetica,
-          color: black,
-        }
-      );
+      page.drawText(formatCurrencyForPdf(item.unit_price), {
+        x: xPos,
+        y: rowY + 8,
+        size: 9,
+        font: helvetica,
+        color: black,
+      });
       xPos += colWidths[2];
 
       // Total
-      page.drawText(
-        new Intl.NumberFormat('fr-FR', {
-          style: 'currency',
-          currency: 'EUR',
-        }).format(item.total),
-        {
-          x: xPos,
-          y: rowY + 8,
-          size: 9,
-          font: helveticaBold,
-          color: black,
-        }
-      );
+      page.drawText(formatCurrencyForPdf(item.total), {
+        x: xPos,
+        y: rowY + 8,
+        size: 9,
+        font: helveticaBold,
+        color: black,
+      });
 
       y -= rowHeight;
     });
@@ -310,19 +309,13 @@ export async function GET(request: Request, { params }: RouteParams) {
       font: helvetica,
       color: gray,
     });
-    page.drawText(
-      new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'EUR',
-      }).format(quote.subtotal),
-      {
-        x: totalsX + totalsWidth - 60,
-        y,
-        size: 10,
-        font: helveticaBold,
-        color: black,
-      }
-    );
+    page.drawText(formatCurrencyForPdf(quote.subtotal), {
+      x: totalsX + totalsWidth - 60,
+      y,
+      size: 10,
+      font: helveticaBold,
+      color: black,
+    });
 
     // VAT
     y -= 18;
@@ -333,19 +326,13 @@ export async function GET(request: Request, { params }: RouteParams) {
       font: helvetica,
       color: gray,
     });
-    page.drawText(
-      new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'EUR',
-      }).format(quote.vat_amount),
-      {
-        x: totalsX + totalsWidth - 60,
-        y,
-        size: 10,
-        font: helveticaBold,
-        color: black,
-      }
-    );
+    page.drawText(formatCurrencyForPdf(quote.vat_amount), {
+      x: totalsX + totalsWidth - 60,
+      y,
+      size: 10,
+      font: helveticaBold,
+      color: black,
+    });
 
     // Total TTC (with gold background)
     y -= 25;
@@ -363,19 +350,13 @@ export async function GET(request: Request, { params }: RouteParams) {
       font: helveticaBold,
       color: white,
     });
-    page.drawText(
-      new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'EUR',
-      }).format(quote.total),
-      {
-        x: totalsX + totalsWidth - 65,
-        y,
-        size: 11,
-        font: helveticaBold,
-        color: white,
-      }
-    );
+    page.drawText(formatCurrencyForPdf(quote.total), {
+      x: totalsX + totalsWidth - 65,
+      y,
+      size: 11,
+      font: helveticaBold,
+      color: white,
+    });
 
     // Notes section
     if (quote.notes) {

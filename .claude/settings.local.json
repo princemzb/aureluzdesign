@@ -18,7 +18,8 @@
       "Bash(# Vérifier qu''il n''y a pas de placeholders/TODO dans les fichiers analytics echo \"\"=== Recherche de placeholders ===\"\" grep -r \"\"TODO\\\\|FIXME\\\\|placeholder\\\\|PLACEHOLDER\\\\|xxx\\\\|XXX\"\" /Users/prince/Developer/aureluz/components/analytics/ /Users/prince/Developer/aureluz/lib/actions/analytics.actions.ts /Users/prince/Developer/aureluz/app/api/analytics/ || echo \"\"✅ Aucun placeholder trouvé\"\" echo \"\"\"\" echo \"\"=== Vérification build production ===\"\" pnpm build 2>&1)",
       "Bash(docker exec:*)",
       "Bash(docker ps:*)",
-      "Bash(pip3 install:*)"
+      "Bash(pip3 install:*)",
+      "Bash(npm run dev:*)"
     ]
   }
 }

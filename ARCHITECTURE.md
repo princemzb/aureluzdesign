@@ -36,7 +36,9 @@ AureLuz Design est une application web complète pour une entreprise de décorat
 - **Système de réservation** : Prise de rendez-vous avec calendrier et créneaux
 - **Back-office administrateur** : Gestion complète de l'activité
 - **Système d'analytics** : Suivi des visiteurs et conversions (RGPD-compliant)
-- **Système de devis** : Création et envoi de devis PDF
+- **Système de devis** : Création, envoi, acceptation client et paiement en ligne (Stripe)
+- **Système de facturation** : Génération automatique de factures après paiement
+- **Workflow devis** : draft → sent → accepted → paid (avec échéancier multi-paiements)
 - **Campagnes email** : Envoi d'emails marketing personnalisés
 
 ### 1.2 Objectifs Architecturaux
@@ -1757,7 +1759,7 @@ export function cn(...inputs: ClassValue[]) {
 |---------|---------------|
 | `EmailService` | Envoi d'emails (confirmation, notification, campagnes) |
 | `GalleryService` | Upload, gestion et ordonnancement des photos |
-| `QuotesService` | CRUD devis, génération PDF, statistiques |
+| `QuotesService` | CRUD devis, acceptation, paiement, génération PDF, statistiques |
 | `SettingsService` | Paramètres site (logo, contact, réseaux sociaux) |
 | `SiteServicesService` | Services configurables (Signature, Instants, Coaching) |
 | `EmailTemplatesService` | Templates email éditables |
@@ -1778,11 +1780,20 @@ export function cn(...inputs: ClassValue[]) {
 | `009` | `site_settings` - Paramètres |
 | `010` | `email_templates` - Templates email |
 | `011` | Ajout paramètres contact |
+| `012-014` | `quote_payments`, `invoices` - Paiements multi-échéances |
+| `015` | Ajout `accepted_at` - Date acceptation devis |
 | `20240106*` | `testimonials` - Témoignages |
 
 ---
 
 ## Changelog
+
+### Version 2.1 (Janvier 2026)
+- Workflow devis amélioré : acceptation client avant paiement
+- Nouveau statut `paid` pour les devis payés
+- Champ `accepted_at` pour tracer l'acceptation
+- Échéancier de paiement personnalisable par l'admin
+- UI admin mise à jour avec badges statuts (Accepté/Payé)
 
 ### Version 2.0 (Janvier 2026)
 - Ajout système d'analytics RGPD-compliant

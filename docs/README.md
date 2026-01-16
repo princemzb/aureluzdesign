@@ -27,7 +27,7 @@ Chaque fichier documente une feature complete avec :
 | Analytics | [analytics-system.md](./analytics-system.md) | Tracking visiteurs RGPD-compliant sans cookies |
 | Reservation | [booking-system.md](./booking-system.md) | Prise de RDV avec calendrier et creneaux |
 | Temoignages | [testimonials-system.md](./testimonials-system.md) | Avis clients avec moderation |
-| Devis | [quotes-system.md](./quotes-system.md) | Creation et gestion de devis |
+| Devis & Paiement | [quotes-system.md](./quotes-system.md) | Devis avec paiement Stripe en ligne |
 | Mailing | [mailing-system.md](./mailing-system.md) | Emails transactionnels et campagnes |
 | Galerie | [gallery-system.md](./gallery-system.md) | Portfolio photos avec upload et ordre |
 | Config | [services-settings-system.md](./services-settings-system.md) | Services et parametres du site |

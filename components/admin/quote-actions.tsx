@@ -3,7 +3,19 @@
 import { useState } from 'react';
 import { format, parseISO, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Download, Send, Loader2, CheckCircle, XCircle, X, Mail, Eye } from 'lucide-react';
+import {
+  Download,
+  Send,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  X,
+  Mail,
+  Eye,
+  CreditCard,
+  Copy,
+  ExternalLink,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -48,10 +60,31 @@ export function QuoteActions({ quote }: QuoteActionsProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showEmailEditor, setShowEmailEditor] = useState(false);
   const [previewTab, setPreviewTab] = useState<'design' | 'gmail'>('design');
+  const [linkCopied, setLinkCopied] = useState(false);
   const [message, setMessage] = useState<{
     type: 'success' | 'error';
     text: string;
   } | null>(null);
+
+  // Payment link
+  const paymentLink = quote.validation_token
+    ? `${typeof window !== 'undefined' ? window.location.origin : 'https://aureluzdesign.fr'}/devis/${quote.validation_token}`
+    : null;
+
+  const depositAmount =
+    quote.deposit_amount ||
+    Math.round(quote.total * (quote.deposit_percent || 30)) / 100;
+
+  const handleCopyLink = async () => {
+    if (!paymentLink) return;
+    try {
+      await navigator.clipboard.writeText(paymentLink);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   // Format values for default email content
   const formattedTotal = new Intl.NumberFormat('fr-FR', {
@@ -182,6 +215,16 @@ L'équipe AureLuz Design`
     }
   };
 
+  // Accept quote section HTML for previews
+  const acceptSectionHtml = `
+    <div style="background: #f9f9f9; border-radius: 8px; padding: 15px; margin: 20px 0; text-align: center;">
+      <p style="color: #666; font-size: 11px; margin: 0 0 8px;">Consultez le détail et confirmez votre accord</p>
+      <a href="#" style="display: inline-block; background: linear-gradient(135deg, #c9a227 0%, #d4af37 100%); color: white; text-decoration: none; padding: 10px 24px; border-radius: 20px; font-weight: 600; font-size: 12px;">
+        Consulter et accepter le devis
+      </a>
+    </div>
+  `;
+
   // Generate preview HTML for design version
   const designPreviewHtml = `
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #FDF8F3; padding: 20px;">
@@ -193,6 +236,7 @@ L'équipe AureLuz Design`
           <p style="color: #4a4a4a; font-size: 14px; line-height: 1.8; margin: 0 0 20px;">
             ${textToHtml(removeUrlsFromText(emailBody))}
           </p>
+          ${acceptSectionHtml}
           <div style="text-align: center; margin-top: 25px;">
             <a href="https://aureluzdesign.fr/gallery" style="display: inline-block; background-color: #c9a227; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 13px;">
               Découvrir nos réalisations
@@ -214,6 +258,16 @@ L'équipe AureLuz Design`
     </div>
   `;
 
+  // Accept quote section HTML for Gmail (simpler version)
+  const acceptSectionGmailHtml = `
+    <div style="background-color: #f9f9f9; border-radius: 8px; padding: 12px; margin: 15px 0; text-align: center;">
+      <p style="color: #666; font-size: 11px; margin: 0 0 6px;">Consultez le détail et confirmez votre accord</p>
+      <a href="#" style="display: inline-block; background: #c9a227; color: white; text-decoration: none; padding: 8px 18px; border-radius: 15px; font-weight: 600; font-size: 11px;">
+        Consulter et accepter le devis
+      </a>
+    </div>
+  `;
+
   // Generate preview HTML for Gmail version
   const gmailPreviewHtml = `
     <div style="font-family: Arial, sans-serif; background-color: #FDF8F3; padding: 20px;">
@@ -227,6 +281,7 @@ L'équipe AureLuz Design`
           <p style="color: #333; font-size: 13px; line-height: 1.8; margin: 0;">
             ${textToHtml(emailBody)}
           </p>
+          ${acceptSectionGmailHtml}
         </div>
         <div style="padding-top: 15px; border-top: 1px solid #eee; text-align: center;">
           <p style="color: #666; font-size: 11px; margin: 0;">
@@ -310,6 +365,83 @@ L'équipe AureLuz Design`
             {message.text}
           </div>
         )}
+
+        {/* Payment Status Section */}
+        {quote.paid_at ? (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="font-semibold text-green-800">
+                Devis payé
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-green-700">Montant:</span>{' '}
+                <span className="font-medium text-green-900">
+                  {(quote.paid_amount || depositAmount).toFixed(2)} EUR
+                </span>
+              </div>
+              <div>
+                <span className="text-green-700">Date:</span>{' '}
+                <span className="font-medium text-green-900">
+                  {format(parseISO(quote.paid_at), 'dd/MM/yyyy à HH:mm', {
+                    locale: fr,
+                  })}
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : quote.status === 'sent' && paymentLink ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <CreditCard className="h-5 w-5 text-blue-600" />
+              <span className="font-semibold text-blue-800">
+                Lien de paiement
+              </span>
+              <span className="ml-auto text-sm text-blue-600">
+                Acompte: {quote.deposit_percent}% ({depositAmount.toFixed(2)} EUR)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                value={paymentLink}
+                readOnly
+                className="bg-white text-xs font-mono flex-1"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyLink}
+                className="gap-1.5"
+              >
+                {linkCopied ? (
+                  <>
+                    <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                    Copié
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3.5 w-3.5" />
+                    Copier
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+              >
+                <a href={paymentLink} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </Button>
+            </div>
+            <p className="text-xs text-blue-600 mt-2">
+              Partagez ce lien avec le client pour qu&apos;il puisse valider et payer son devis en ligne.
+            </p>
+          </div>
+        ) : null}
       </div>
 
       {/* Email Editor Modal */}

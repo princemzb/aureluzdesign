@@ -16,7 +16,7 @@ export default async function DevisPage() {
             Devis
           </h1>
           <p className="text-muted-foreground mt-1">
-            {stats.total} devis • {stats.accepted} accepté{stats.accepted > 1 ? 's' : ''}
+            {stats.total} devis • {stats.accepted + stats.paid} confirmé{(stats.accepted + stats.paid) > 1 ? 's' : ''}
           </p>
         </div>
         <Link href="/admin/devis/nouveau">
@@ -28,7 +28,7 @@ export default async function DevisPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-background rounded-xl border border-border p-4">
           <p className="text-sm text-muted-foreground">Brouillons</p>
           <p className="text-2xl font-semibold mt-1">{stats.draft}</p>
@@ -39,10 +39,14 @@ export default async function DevisPage() {
         </div>
         <div className="bg-background rounded-xl border border-border p-4">
           <p className="text-sm text-muted-foreground">Acceptés</p>
-          <p className="text-2xl font-semibold mt-1 text-green-600">{stats.accepted}</p>
+          <p className="text-2xl font-semibold mt-1 text-blue-600">{stats.accepted}</p>
         </div>
         <div className="bg-background rounded-xl border border-border p-4">
-          <p className="text-sm text-muted-foreground">CA accepté</p>
+          <p className="text-sm text-muted-foreground">Payés</p>
+          <p className="text-2xl font-semibold mt-1 text-green-600">{stats.paid}</p>
+        </div>
+        <div className="bg-background rounded-xl border border-border p-4">
+          <p className="text-sm text-muted-foreground">CA confirmé</p>
           <p className="text-2xl font-semibold mt-1">
             {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(stats.totalRevenue)}
           </p>

@@ -23,7 +23,7 @@ import {
 import { createQuote, updateQuote } from '@/lib/actions/quotes.actions';
 import { QuotePreview } from './quote-preview';
 import { EVENT_TYPES } from '@/lib/utils/constants';
-import type { Quote } from '@/lib/types';
+import type { Quote, PaymentScheduleItem } from '@/lib/types';
 
 interface QuoteFormProps {
   quote?: Quote;
@@ -61,6 +61,16 @@ export function QuoteForm({ quote, mode }: QuoteFormProps) {
           unit_price: item.unit_price,
         }))
       : [{ id: '1', description: '', quantity: 1, unit_price: 0 }]
+  );
+
+  // Échéancier de paiement (charger depuis le devis existant ou utiliser défaut)
+  const [paymentSchedule, setPaymentSchedule] = useState<PaymentScheduleItem[]>(
+    quote?.payment_schedule && quote.payment_schedule.length > 0
+      ? quote.payment_schedule
+      : [
+          { label: 'Acompte', percentage: 30 },
+          { label: 'Solde', percentage: 70 },
+        ]
   );
 
   // Calculs
@@ -101,12 +111,50 @@ export function QuoteForm({ quote, mode }: QuoteFormProps) {
     );
   };
 
+  // Fonctions pour gérer l'échéancier
+  const addPaymentInstallment = () => {
+    setPaymentSchedule([
+      ...paymentSchedule,
+      { label: `Paiement ${paymentSchedule.length + 1}`, percentage: 0 },
+    ]);
+  };
+
+  const removePaymentInstallment = (index: number) => {
+    if (paymentSchedule.length > 1) {
+      setPaymentSchedule(paymentSchedule.filter((_, i) => i !== index));
+    }
+  };
+
+  const updatePaymentInstallment = (
+    index: number,
+    field: keyof PaymentScheduleItem,
+    value: string | number
+  ) => {
+    setPaymentSchedule(
+      paymentSchedule.map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      )
+    );
+  };
+
+  const totalPaymentPercent = paymentSchedule.reduce(
+    (sum, item) => sum + item.percentage,
+    0
+  );
+
+  const isPaymentScheduleValid = Math.abs(totalPaymentPercent - 100) < 0.01;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     if (!clientName || !clientEmail || items.some((i) => !i.description)) {
       setError('Veuillez remplir tous les champs obligatoires.');
+      return;
+    }
+
+    if (!isPaymentScheduleValid) {
+      setError('Le total des pourcentages de paiement doit être égal à 100%.');
       return;
     }
 
@@ -126,6 +174,8 @@ export function QuoteForm({ quote, mode }: QuoteFormProps) {
       vat_rate: vatRate,
       notes: notes || undefined,
       validity_days: validityDays,
+      deposit_percent: paymentSchedule[0]?.percentage || 30,
+      payment_schedule: paymentSchedule,
     };
 
     const result =
@@ -164,7 +214,17 @@ export function QuoteForm({ quote, mode }: QuoteFormProps) {
     created_at: quote?.created_at || new Date().toISOString(),
     updated_at: new Date().toISOString(),
     sent_at: quote?.sent_at || null,
+    accepted_at: quote?.accepted_at || null,
     expires_at: quote?.expires_at || null,
+    // Payment fields
+    deposit_percent: paymentSchedule[0]?.percentage || 30,
+    deposit_amount: quote?.deposit_amount || null,
+    validation_token: quote?.validation_token || null,
+    stripe_payment_intent_id: quote?.stripe_payment_intent_id || null,
+    stripe_session_id: quote?.stripe_session_id || null,
+    paid_at: quote?.paid_at || null,
+    paid_amount: quote?.paid_amount || null,
+    payment_schedule: paymentSchedule,
   };
 
   return (
@@ -279,7 +339,8 @@ export function QuoteForm({ quote, mode }: QuoteFormProps) {
                       onChange={(e) =>
                         updateItem(item.id, 'quantity', parseInt(e.target.value) || 1)
                       }
-                      className="mt-1"
+                      onFocus={(e) => e.target.select()}
+                      className="mt-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                   <div className="col-span-6 sm:col-span-3">
@@ -298,7 +359,8 @@ export function QuoteForm({ quote, mode }: QuoteFormProps) {
                           parseFloat(e.target.value) || 0
                         )
                       }
-                      className="mt-1"
+                      onFocus={(e) => e.target.select()}
+                      className="mt-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                   <div className="col-span-2 sm:col-span-1 flex items-end justify-end pb-1">
@@ -358,6 +420,132 @@ export function QuoteForm({ quote, mode }: QuoteFormProps) {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Échéancier de paiement */}
+          <div className="bg-background rounded-xl border border-border p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-medium text-lg">Échéancier de paiement</h2>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addPaymentInstallment}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Ajouter
+              </Button>
+            </div>
+
+            <div className="space-y-3">
+              {paymentSchedule.map((installment, index) => (
+                <div
+                  key={index}
+                  className="grid grid-cols-12 gap-2 items-center p-3 bg-secondary/30 rounded-lg"
+                >
+                  <div className="col-span-6 sm:col-span-7">
+                    <Label className="text-xs text-muted-foreground">
+                      Libellé
+                    </Label>
+                    <Input
+                      value={installment.label}
+                      onChange={(e) =>
+                        updatePaymentInstallment(index, 'label', e.target.value)
+                      }
+                      placeholder="Ex: Acompte, Solde..."
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="col-span-4 sm:col-span-4">
+                    <Label className="text-xs text-muted-foreground">
+                      Pourcentage
+                    </Label>
+                    <div className="relative mt-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={installment.percentage}
+                        onChange={(e) =>
+                          updatePaymentInstallment(
+                            index,
+                            'percentage',
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        className="pr-8"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                        %
+                      </span>
+                    </div>
+                  </div>
+                  <div className="col-span-2 sm:col-span-1 flex items-end justify-end pb-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removePaymentInstallment(index)}
+                      disabled={paymentSchedule.length <= 1}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Indicateur de total */}
+            <div
+              className={`flex items-center justify-between p-3 rounded-lg ${
+                isPaymentScheduleValid
+                  ? 'bg-green-50 border border-green-200'
+                  : 'bg-red-50 border border-red-200'
+              }`}
+            >
+              <span
+                className={`text-sm font-medium ${
+                  isPaymentScheduleValid ? 'text-green-700' : 'text-red-700'
+                }`}
+              >
+                Total des échéances
+              </span>
+              <span
+                className={`font-bold ${
+                  isPaymentScheduleValid ? 'text-green-700' : 'text-red-700'
+                }`}
+              >
+                {totalPaymentPercent.toFixed(0)}%
+                {!isPaymentScheduleValid && ' (doit être 100%)'}
+              </span>
+            </div>
+
+            {/* Aperçu des montants */}
+            {total > 0 && (
+              <div className="space-y-2 pt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground font-medium">
+                  Aperçu des montants :
+                </p>
+                {paymentSchedule.map((installment, index) => (
+                  <div
+                    key={index}
+                    className="flex justify-between text-sm"
+                  >
+                    <span className="text-muted-foreground">
+                      {installment.label} ({installment.percentage}%)
+                    </span>
+                    <span className="font-medium">
+                      {new Intl.NumberFormat('fr-FR', {
+                        style: 'currency',
+                        currency: 'EUR',
+                      }).format((total * installment.percentage) / 100)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Totaux */}

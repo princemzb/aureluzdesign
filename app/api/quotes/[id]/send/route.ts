@@ -14,6 +14,14 @@ interface RouteParams {
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Helper to format currency for PDF (WinAnsi encoding doesn't support narrow no-break space)
+function formatCurrencyForPdf(amount: number): string {
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
+    .format(amount)
+    .replace(/\u202F/g, ' ')  // Replace narrow no-break space with regular space
+    .replace(/\u00A0/g, ' '); // Replace no-break space with regular space
+}
+
 async function generatePdfBuffer(quote: Awaited<ReturnType<typeof QuotesService.getById>>): Promise<Buffer> {
   if (!quote) throw new Error('Quote not found');
 
@@ -37,7 +45,17 @@ async function generatePdfBuffer(quote: Awaited<ReturnType<typeof QuotesService.
   const margin = 50;
   let y = height - margin;
 
-  // Try to load logo
+  // Header - DEVIS text (right side)
+  const headerY = y - 10;
+  page.drawText('DEVIS', {
+    x: width - margin - 80,
+    y: headerY,
+    size: 24,
+    font: helveticaBold,
+    color: gold,
+  });
+
+  // Try to load logo (left side, aligned with DEVIS)
   try {
     const logoPath = path.join(
       process.cwd(),
@@ -51,28 +69,19 @@ async function generatePdfBuffer(quote: Awaited<ReturnType<typeof QuotesService.
     const logoDims = logoImage.scale(logoScale);
     page.drawImage(logoImage, {
       x: margin,
-      y: y - logoDims.height,
+      y: y - logoDims.height + 45,
       width: logoDims.width,
       height: logoDims.height,
     });
   } catch {
     page.drawText('AureLuz Design', {
       x: margin,
-      y: y - 20,
+      y: headerY,
       size: 18,
       font: helveticaBold,
       color: gold,
     });
   }
-
-  // Header
-  page.drawText('DEVIS', {
-    x: width - margin - 80,
-    y: y - 10,
-    size: 24,
-    font: helveticaBold,
-    color: gold,
-  });
 
   page.drawText(quote.quote_number, {
     x: width - margin - 80,
@@ -238,13 +247,13 @@ async function generatePdfBuffer(quote: Awaited<ReturnType<typeof QuotesService.
     xPos += colWidths[1];
 
     page.drawText(
-      new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(item.unit_price),
+      formatCurrencyForPdf(item.unit_price),
       { x: xPos, y: rowY + 8, size: 9, font: helvetica, color: black }
     );
     xPos += colWidths[2];
 
     page.drawText(
-      new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(item.total),
+      formatCurrencyForPdf(item.total),
       { x: xPos, y: rowY + 8, size: 9, font: helveticaBold, color: black }
     );
 
@@ -264,7 +273,7 @@ async function generatePdfBuffer(quote: Awaited<ReturnType<typeof QuotesService.
     color: gray,
   });
   page.drawText(
-    new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(quote.subtotal),
+    formatCurrencyForPdf(quote.subtotal),
     { x: totalsX + totalsWidth - 60, y, size: 10, font: helveticaBold, color: black }
   );
 
@@ -277,7 +286,7 @@ async function generatePdfBuffer(quote: Awaited<ReturnType<typeof QuotesService.
     color: gray,
   });
   page.drawText(
-    new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(quote.vat_amount),
+    formatCurrencyForPdf(quote.vat_amount),
     { x: totalsX + totalsWidth - 60, y, size: 10, font: helveticaBold, color: black }
   );
 
@@ -297,7 +306,7 @@ async function generatePdfBuffer(quote: Awaited<ReturnType<typeof QuotesService.
     color: white,
   });
   page.drawText(
-    new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(quote.total),
+    formatCurrencyForPdf(quote.total),
     { x: totalsX + totalsWidth - 65, y, size: 11, font: helveticaBold, color: white }
   );
 
@@ -423,6 +432,11 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Use custom or default subject
     const emailSubject = customSubject || `Votre devis ${quote.quote_number} - AureLuz Design`;
 
+    // Validation link (for acceptance, not direct payment)
+    const paymentLink = quote.validation_token
+      ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/devis/${quote.validation_token}`
+      : null;
+
     // Check if Gmail for template selection
     const isGmail = isGmailAddress(quote.client_email);
 
@@ -464,11 +478,27 @@ export async function POST(request: Request, { params }: RouteParams) {
                       ${emailBodyHtml}
                     </p>
 
-                    <!-- Buttons -->
+                    <!-- Accept Quote Button -->
+                    ${paymentLink ? `
                     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 30px;">
                       <tr>
+                        <td align="center" style="padding: 25px; background-color: #f9f9f9; border-radius: 12px;">
+                          <p style="color: #666; font-size: 14px; margin: 0 0 15px;">
+                            Consultez le détail de votre devis et confirmez votre accord
+                          </p>
+                          <a href="${paymentLink}" style="display: inline-block; background: linear-gradient(135deg, #c9a227 0%, #d4af37 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 50px; font-weight: 600; font-size: 16px;">
+                            Consulter et accepter le devis
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                    ` : ''}
+
+                    <!-- Other Buttons -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 20px;">
+                      <tr>
                         <td align="center" style="padding-bottom: 15px;">
-                          <a href="https://aureluzdesign.fr/gallery" style="display: inline-block; background-color: #c9a227; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                          <a href="https://aureluzdesign.fr/gallery" style="display: inline-block; background-color: #1a1a1a; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 500; font-size: 13px;">
                             Découvrir nos réalisations
                           </a>
                         </td>
@@ -476,7 +506,7 @@ export async function POST(request: Request, { params }: RouteParams) {
                       <tr>
                         <td align="center">
                           <a href="https://instagram.com/aureluz_design" style="display: inline-block;">
-                            <img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" alt="Instagram" style="width: 40px; height: 40px;" />
+                            <img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" alt="Instagram" style="width: 32px; height: 32px;" />
                           </a>
                         </td>
                       </tr>
@@ -528,6 +558,14 @@ export async function POST(request: Request, { params }: RouteParams) {
               </p>
             </td>
           </tr>
+          ${paymentLink ? `
+          <tr>
+            <td style="padding: 20px 0; text-align: center; background-color: #f9f9f9; border-radius: 8px;">
+              <p style="color: #666; font-size: 14px; margin: 0 0 8px;">Consultez le détail et confirmez votre accord</p>
+              <p style="margin: 0;"><strong>→ <a href="${paymentLink}" style="color: #c9a227;">Consulter et accepter le devis</a></strong></p>
+            </td>
+          </tr>
+          ` : ''}
           <tr>
             <td style="padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
               <p style="color: #666; font-size: 12px; margin: 0;">

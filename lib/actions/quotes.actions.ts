@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { QuotesService } from '@/lib/services/quotes.service';
+import { InvoicesService } from '@/lib/services/invoices.service';
 import type { Quote, CreateQuoteInput, UpdateQuoteInput, QuoteStatus } from '@/lib/types';
 
 export async function getQuotes(): Promise<Quote[]> {
@@ -90,4 +91,116 @@ export async function updateQuoteStatus(
 
 export async function getQuoteStats() {
   return QuotesService.getStats();
+}
+
+// ============================================
+// Payment-related actions
+// ============================================
+
+/**
+ * Get quote by validation token (for public access)
+ */
+export async function getQuoteByToken(
+  token: string
+): Promise<{ success: boolean; quote?: Quote; error?: string }> {
+  try {
+    const quote = await QuotesService.getByToken(token);
+
+    if (!quote) {
+      return { success: false, error: 'Devis non trouvé' };
+    }
+
+    return { success: true, quote };
+  } catch (error) {
+    console.error('Error in getQuoteByToken:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Une erreur est survenue',
+    };
+  }
+}
+
+/**
+ * Accept a quote (client action)
+ * This marks the quote as accepted and triggers a confirmation email with payment link
+ */
+export async function acceptQuote(
+  quoteId: string
+): Promise<{ success: boolean; quote?: Quote; error?: string }> {
+  try {
+    const quote = await QuotesService.markAsAccepted(quoteId);
+
+    revalidatePath('/admin/devis');
+    revalidatePath(`/admin/devis/${quoteId}`);
+
+    return { success: true, quote };
+  } catch (error) {
+    console.error('Error in acceptQuote:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Une erreur est survenue',
+    };
+  }
+}
+
+/**
+ * Create Stripe checkout session for quote payment
+ */
+export async function createQuoteCheckoutSession(
+  quoteId: string,
+  baseUrl: string
+): Promise<{ success: boolean; sessionId?: string; url?: string; error?: string }> {
+  try {
+    const quote = await QuotesService.getById(quoteId);
+    if (!quote) {
+      return { success: false, error: 'Devis non trouvé' };
+    }
+
+    const successUrl = `${baseUrl}/devis/${quote.validation_token}/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${baseUrl}/devis/${quote.validation_token}`;
+
+    const { sessionId, url } = await QuotesService.createCheckoutSession(
+      quoteId,
+      successUrl,
+      cancelUrl
+    );
+
+    return { success: true, sessionId, url };
+  } catch (error) {
+    console.error('Error in createQuoteCheckoutSession:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Une erreur est survenue',
+    };
+  }
+}
+
+/**
+ * Update deposit percentage for a quote
+ */
+export async function updateQuoteDepositPercent(
+  id: string,
+  depositPercent: number
+): Promise<{ success: boolean; quote?: Quote; error?: string }> {
+  try {
+    const quote = await QuotesService.updateDepositPercent(id, depositPercent);
+
+    revalidatePath('/admin/devis');
+    revalidatePath(`/admin/devis/${id}`);
+
+    return { success: true, quote };
+  } catch (error) {
+    console.error('Error in updateQuoteDepositPercent:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Une erreur est survenue',
+    };
+  }
+}
+
+/**
+ * Get invoice for a quote
+ */
+export async function getQuoteInvoice(quoteId: string) {
+  return InvoicesService.getByQuoteId(quoteId);
 }

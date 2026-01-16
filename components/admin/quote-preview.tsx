@@ -174,6 +174,70 @@ export function QuotePreview({ quote, forPdf = false }: QuotePreviewProps) {
         </div>
       </div>
 
+      {/* Échéancier de paiement */}
+      {quote.payment_schedule && quote.payment_schedule.length > 0 && (
+        <div className="mb-8 p-4 bg-white rounded-lg border border-gray-200">
+          <h2
+            className="text-sm font-semibold uppercase tracking-wide mb-3"
+            style={{ color: '#c9a227' }}
+          >
+            Échéancier de paiement
+          </h2>
+          <div className="space-y-2">
+            {quote.payment_schedule.map((payment, index) => (
+              <div
+                key={index}
+                className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0"
+              >
+                <span className="text-gray-700">
+                  {payment.label} ({payment.percentage}%)
+                </span>
+                <span className="font-medium">
+                  {new Intl.NumberFormat('fr-FR', {
+                    style: 'currency',
+                    currency: 'EUR',
+                  }).format((quote.total * payment.percentage) / 100)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Lien de paiement (affiché uniquement si le devis est envoyé) */}
+      {quote.validation_token && quote.status === 'sent' && !forPdf && (
+        <div className="mb-8 p-4 bg-[#c9a227]/10 rounded-lg border border-[#c9a227]/30">
+          <h2
+            className="text-sm font-semibold uppercase tracking-wide mb-2"
+            style={{ color: '#c9a227' }}
+          >
+            Lien de paiement
+          </h2>
+          <p className="text-sm text-gray-600 mb-2">
+            Partagez ce lien avec le client pour qu&apos;il puisse payer en ligne :
+          </p>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              readOnly
+              value={`${typeof window !== 'undefined' ? window.location.origin : ''}/devis/${quote.validation_token}`}
+              className="flex-1 px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg font-mono"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  `${window.location.origin}/devis/${quote.validation_token}`
+                );
+              }}
+              className="px-3 py-2 text-sm bg-[#c9a227] text-white rounded-lg hover:bg-[#b8922a] transition-colors"
+            >
+              Copier
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Notes */}
       {quote.notes && (
         <div className="mb-8 p-4 bg-white rounded-lg border border-gray-200">

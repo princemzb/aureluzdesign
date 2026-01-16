@@ -299,7 +299,14 @@ export interface RecentActivity {
 // Types Devis (Quotes)
 // ============================================
 
-export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired';
+// Statuts du devis :
+// - draft: Brouillon en cours d'édition
+// - sent: Envoyé, en attente d'acceptation par le client
+// - accepted: Accepté par le client, en attente de paiement
+// - paid: Paiement(s) reçu(s)
+// - rejected: Refusé par le client
+// - expired: Délai de validité dépassé
+export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'paid' | 'rejected' | 'expired';
 
 export interface QuoteItem {
   id: string;
@@ -328,7 +335,24 @@ export interface Quote {
   created_at: string;
   updated_at: string;
   sent_at: string | null;
+  accepted_at: string | null;
   expires_at: string | null;
+  // Champs paiement
+  deposit_percent: number;
+  deposit_amount: number | null;
+  validation_token: string | null;
+  stripe_payment_intent_id: string | null;
+  stripe_session_id: string | null;
+  paid_at: string | null;
+  paid_amount: number | null;
+  // Échéancier de paiement personnalisé
+  payment_schedule: PaymentScheduleItem[] | null;
+}
+
+// Configuration d'une échéance de paiement
+export interface PaymentScheduleItem {
+  label: string;
+  percentage: number;
 }
 
 export interface CreateQuoteInput {
@@ -341,10 +365,102 @@ export interface CreateQuoteInput {
   vat_rate: number;
   notes?: string;
   validity_days?: number;
+  deposit_percent?: number;
+  // Échéancier de paiement personnalisé
+  payment_schedule?: PaymentScheduleItem[];
 }
 
 export interface UpdateQuoteInput extends Partial<CreateQuoteInput> {
   status?: QuoteStatus;
+}
+
+// ============================================
+// Types Échéances de paiement (Quote Payments)
+// ============================================
+
+export type QuotePaymentStatus = 'pending' | 'sent' | 'paid' | 'cancelled';
+
+export interface QuotePayment {
+  id: string;
+  quote_id: string;
+  payment_number: number;
+  label: string;
+  description: string | null;
+  amount: number;
+  percentage: number | null;
+  due_date: string | null;
+  sent_at: string | null;
+  paid_at: string | null;
+  status: QuotePaymentStatus;
+  stripe_session_id: string | null;
+  stripe_payment_intent_id: string | null;
+  validation_token: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateQuotePaymentInput {
+  quote_id: string;
+  payment_number: number;
+  label: string;
+  description?: string;
+  amount: number;
+  percentage?: number;
+  due_date?: string;
+}
+
+export interface UpdateQuotePaymentInput {
+  label?: string;
+  description?: string;
+  amount?: number;
+  percentage?: number;
+  due_date?: string;
+  status?: QuotePaymentStatus;
+}
+
+export interface QuotePaymentSummary {
+  quote_id: string;
+  quote_number: string;
+  total: number;
+  total_payments: number;
+  paid_payments: number;
+  total_paid: number;
+  remaining_amount: number;
+  payment_status: 'fully_paid' | 'partially_paid' | 'unpaid';
+}
+
+// ============================================
+// Types Factures (Invoices)
+// ============================================
+
+export interface Invoice {
+  id: string;
+  invoice_number: string;
+  quote_id: string;
+  client_name: string;
+  client_email: string;
+  amount: number;
+  vat_amount: number;
+  total_amount: number;
+  pdf_url: string | null;
+  pdf_storage_path: string | null;
+  payment_method: 'stripe' | 'paypal';
+  stripe_payment_intent_id: string | null;
+  created_at: string;
+  sent_at: string | null;
+  notes: string | null;
+}
+
+export interface CreateInvoiceInput {
+  quote_id: string;
+  client_name: string;
+  client_email: string;
+  amount: number;
+  vat_amount?: number;
+  total_amount: number;
+  payment_method?: 'stripe' | 'paypal';
+  stripe_payment_intent_id?: string;
+  notes?: string;
 }
 
 // ============================================
