@@ -174,16 +174,6 @@ export async function getAvailableSlots(date: string): Promise<{
       });
     };
 
-    // Helper to check if an hour is within open_slots ranges
-    const isHourInOpenSlots = (hour: number): boolean => {
-      if (!openSlots || openSlots.length === 0) return false;
-      return openSlots.some((o) => {
-        const startHour = parseInt(o.start_time.split(':')[0]);
-        const endHour = parseInt(o.end_time.split(':')[0]);
-        return hour >= startHour && hour < endHour;
-      });
-    };
-
     // Generate time slots
     const slots: { time: string; available: boolean; isExceptional?: boolean }[] = [];
 
