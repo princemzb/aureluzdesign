@@ -414,14 +414,18 @@ export async function POST(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Devis non trouvé' }, { status: 404 });
     }
 
-    // Get custom subject and body from request
+    // Get custom subject, body, and attachments from request
     let customSubject: string | undefined;
     let customBody: string | undefined;
+    let additionalAttachments: Array<{ filename: string; content: string }> = [];
 
     try {
       const body = await request.json();
       customSubject = body.subject;
       customBody = body.body;
+      if (body.attachments && Array.isArray(body.attachments)) {
+        additionalAttachments = body.attachments;
+      }
     } catch {
       // No body provided, use defaults
     }
@@ -580,18 +584,29 @@ export async function POST(request: Request, { params }: RouteParams) {
       </html>
     `;
 
-    // Send email with PDF attachment
+    // Build attachments array: PDF + any additional attachments
+    const emailAttachments: Array<{ filename: string; content: Buffer }> = [
+      {
+        filename: `devis-${quote.quote_number}.pdf`,
+        content: pdfBuffer,
+      },
+    ];
+
+    // Add additional attachments (convert from base64)
+    for (const att of additionalAttachments) {
+      emailAttachments.push({
+        filename: att.filename,
+        content: Buffer.from(att.content, 'base64'),
+      });
+    }
+
+    // Send email with attachments
     const { error } = await resend.emails.send({
       from: 'AureLuz Design <contact@aureluzdesign.fr>',
       to: quote.client_email,
       subject: emailSubject,
       html: isGmail ? gmailTemplate : designTemplate,
-      attachments: [
-        {
-          filename: `devis-${quote.quote_number}.pdf`,
-          content: pdfBuffer,
-        },
-      ],
+      attachments: emailAttachments,
     });
 
     if (error) {

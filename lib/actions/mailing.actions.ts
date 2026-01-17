@@ -7,6 +7,11 @@ export interface Contact {
   email: string;
 }
 
+export interface Attachment {
+  filename: string;
+  content: string; // base64
+}
+
 export interface SendCampaignResult {
   success: boolean;
   total: number;
@@ -16,7 +21,8 @@ export interface SendCampaignResult {
 }
 
 export async function sendSalonCampaign(
-  contacts: Contact[]
+  contacts: Contact[],
+  attachments?: Attachment[]
 ): Promise<SendCampaignResult> {
   const result: SendCampaignResult = {
     success: false,
@@ -33,7 +39,7 @@ export async function sendSalonCampaign(
   // Envoyer les emails un par un pour éviter les limites de rate
   for (const contact of contacts) {
     try {
-      const emailResult = await sendSalonCampaignEmail(contact.email, contact.name);
+      const emailResult = await sendSalonCampaignEmail(contact.email, contact.name, attachments);
 
       if (emailResult.success) {
         result.sent++;

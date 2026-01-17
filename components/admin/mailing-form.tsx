@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2, Send, Loader2, Mail, CheckCircle, XCircle, Eye, X } from 'lucide-react';
+import { Plus, Trash2, Send, Loader2, Mail, CheckCircle, XCircle, Eye, X, Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,25 @@ export function MailingForm() {
   const [previewHtml, setPreviewHtml] = useState('');
   const [previewType, setPreviewType] = useState<'gmail' | 'other'>('other');
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      setAttachments((prev) => [...prev, ...Array.from(files)]);
+    }
+    e.target.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
 
   const addContact = () => {
     setContacts([...contacts, { name: '', email: '' }]);
@@ -63,11 +82,25 @@ export function MailingForm() {
     setIsSending(true);
 
     try {
-      const campaignResult = await sendSalonCampaign(contacts);
+      // Convert attachments to base64
+      const attachmentPromises = attachments.map(async (file) => {
+        const buffer = await file.arrayBuffer();
+        const base64 = btoa(
+          new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+        );
+        return {
+          filename: file.name,
+          content: base64,
+        };
+      });
+      const attachmentData = await Promise.all(attachmentPromises);
+
+      const campaignResult = await sendSalonCampaign(contacts, attachmentData);
       setResult(campaignResult);
 
       if (campaignResult.success) {
         setContacts([{ name: '', email: '' }]);
+        setAttachments([]);
       }
     } catch (error) {
       console.error('Erreur lors de l\'envoi:', error);
@@ -85,6 +118,7 @@ export function MailingForm() {
 
   const resetForm = () => {
     setContacts([{ name: '', email: '' }]);
+    setAttachments([]);
     setResult(null);
   };
 
@@ -258,6 +292,64 @@ export function MailingForm() {
                 </Button>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Pièces jointes */}
+        <div className="space-y-3">
+          <Label className="text-base font-medium">
+            Pièces jointes {attachments.length > 0 && `(${attachments.length})`}
+          </Label>
+
+          {/* File list */}
+          {attachments.length > 0 && (
+            <div className="space-y-2">
+              {attachments.map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Paperclip className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-sm truncate">{file.name}</span>
+                    <span className="text-xs text-muted-foreground flex-shrink-0">
+                      ({formatFileSize(file.size)})
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeAttachment(index)}
+                    className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add file button */}
+          <div>
+            <input
+              type="file"
+              id="mailing-attachment-input"
+              multiple
+              className="hidden"
+              onChange={handleFileSelect}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => document.getElementById('mailing-attachment-input')?.click()}
+              className="gap-2"
+            >
+              <Paperclip className="h-4 w-4" />
+              Ajouter une pièce jointe
+            </Button>
           </div>
         </div>
 

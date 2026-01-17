@@ -574,7 +574,8 @@ export async function getSalonEmailPreview(name: string, isGmail: boolean): Prom
 // Email campagne salon du mariage
 export async function sendSalonCampaignEmail(
   to: string,
-  name: string
+  name: string,
+  attachments?: Array<{ filename: string; content: string }>
 ): Promise<{ success: boolean; error?: string }> {
   const bookingUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://aureluzdesign.fr'}/booking`;
 
@@ -591,6 +592,22 @@ export async function sendSalonCampaignEmail(
   const html = isGmailAddress(to)
     ? getSalonEmailTemplateSimple(name, bookingUrl, content, instagramUrl)
     : getSalonEmailTemplateDesign(name, bookingUrl, content, instagramUrl);
+
+  // If there are attachments, use sendEmailWithAttachment
+  if (attachments && attachments.length > 0) {
+    const emailAttachments = attachments.map((att) => ({
+      filename: att.filename,
+      content: Buffer.from(att.content, 'base64'),
+    }));
+
+    return sendEmailWithAttachment({
+      to,
+      subject,
+      html,
+      fromEmail: emailSettings.fromEmail,
+      attachments: emailAttachments,
+    });
+  }
 
   return sendEmail({
     to,

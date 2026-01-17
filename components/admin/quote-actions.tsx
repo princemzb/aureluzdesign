@@ -15,6 +15,9 @@ import {
   CreditCard,
   Copy,
   ExternalLink,
+  Paperclip,
+  Trash2,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -121,6 +124,26 @@ Découvrez nos réalisations :
 À très bientôt,
 L'équipe AureLuz Design`
   );
+  const [attachments, setAttachments] = useState<File[]>([]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      setAttachments((prev) => [...prev, ...Array.from(files)]);
+    }
+    // Reset input to allow selecting the same file again
+    e.target.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
 
   const handleDownloadPdf = async () => {
     setIsDownloading(true);
@@ -160,6 +183,19 @@ L'équipe AureLuz Design`
     setMessage(null);
 
     try {
+      // Convert attachments to base64
+      const attachmentPromises = attachments.map(async (file) => {
+        const buffer = await file.arrayBuffer();
+        const base64 = btoa(
+          new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+        );
+        return {
+          filename: file.name,
+          content: base64,
+        };
+      });
+      const attachmentData = await Promise.all(attachmentPromises);
+
       const response = await fetch(`/api/quotes/${quote.id}/send`, {
         method: 'POST',
         headers: {
@@ -168,6 +204,7 @@ L'équipe AureLuz Design`
         body: JSON.stringify({
           subject: emailSubject,
           body: emailBody,
+          attachments: attachmentData,
         }),
       });
 
@@ -178,6 +215,7 @@ L'équipe AureLuz Design`
 
       setMessage({ type: 'success', text: 'Devis envoyé par email avec succès' });
       setShowEmailEditor(false);
+      setAttachments([]);
     } catch (error) {
       console.error('Error sending email:', error);
       setMessage({
@@ -496,13 +534,71 @@ L'équipe AureLuz Design`
                     id="emailBody"
                     value={emailBody}
                     onChange={(e) => setEmailBody(e.target.value)}
-                    rows={14}
+                    rows={10}
                     className="font-mono text-sm"
                   />
                 </div>
 
-                <div className="bg-secondary/30 rounded-lg p-3 text-sm text-muted-foreground">
-                  <p>Le PDF du devis sera automatiquement joint à l&apos;email.</p>
+                {/* Attachments Section */}
+                <div className="space-y-3">
+                  <Label>Pièces jointes</Label>
+
+                  {/* PDF auto note */}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/30 rounded-lg p-2">
+                    <FileText className="h-4 w-4" />
+                    <span>Le PDF du devis sera automatiquement joint</span>
+                  </div>
+
+                  {/* File list */}
+                  {attachments.length > 0 && (
+                    <div className="space-y-2">
+                      {attachments.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 bg-secondary/30 rounded-lg"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Paperclip className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="text-sm truncate">{file.name}</span>
+                            <span className="text-xs text-muted-foreground flex-shrink-0">
+                              ({formatFileSize(file.size)})
+                            </span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeAttachment(index)}
+                            className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add file button */}
+                  <div>
+                    <input
+                      type="file"
+                      id="attachment-input"
+                      multiple
+                      className="hidden"
+                      onChange={handleFileSelect}
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById('attachment-input')?.click()}
+                      className="gap-2"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                      Ajouter une pièce jointe
+                    </Button>
+                  </div>
                 </div>
               </div>
 
