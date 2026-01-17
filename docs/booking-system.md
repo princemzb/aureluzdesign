@@ -465,6 +465,34 @@ L'admin peut :
 - Annuler un RDV (`appointment-actions.tsx`)
 - Bloquer des creneaux (`blocked_slots`)
 - Ouvrir des creneaux exceptionnels (`open_slots`) via `OpenSlotsManager`
+- Configurer les jours ouvrables et plages horaires (`BusinessHoursManager`)
+
+### Configuration des horaires (Onglet "Horaires")
+
+L'admin peut configurer les jours d'ouverture et les plages horaires depuis l'onglet "Horaires" dans Gestion du site :
+
+**Fichiers impliques :**
+- `components/admin/business-hours-manager.tsx` - Interface de configuration
+- `lib/actions/business-hours.actions.ts` - Server Actions CRUD
+- Table `business_hours` en base
+
+**Fonctionnalites :**
+1. **Toggle ON/OFF par jour** - Active/desactive chaque jour de la semaine
+2. **Horaires personnalisables par jour** - Heure debut et fin individuelles
+3. **Appliquer a tous** - Definir les memes horaires sur tous les jours ouverts
+
+```typescript
+// Server Actions disponibles
+getBusinessHours()                           // Recuperer tous les jours
+updateBusinessHour(dayOfWeek, updates)       // Modifier un jour
+updateAllBusinessHours(hours[])              // Modifier tous les jours
+applyHoursToAllDays(open, close, toAll?)     // Appliquer horaires globaux
+```
+
+**Impact sur les reservations :**
+- Les jours avec `is_open = false` n'apparaissent pas dans le calendrier
+- Les creneaux sont generes entre `open_time` et `close_time` (intervalles 1h)
+- Ex: 09:00-18:00 = creneaux a 09:00, 10:00, 11:00... 17:00
 
 ### Gestion des ouvertures exceptionnelles
 

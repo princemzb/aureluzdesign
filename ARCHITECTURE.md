@@ -398,6 +398,7 @@ aureluz/
 │   │   ├── gallery-manager.tsx       # Gestion galerie
 │   │   ├── services-manager.tsx      # Gestion services
 │   │   ├── open-slots-manager.tsx    # Gestion ouvertures exceptionnelles
+│   │   ├── business-hours-manager.tsx# Configuration jours/horaires
 │   │   ├── preview-wrapper.tsx       # Aperçu responsive
 │   │   └── ...
 │   │
@@ -1795,6 +1796,13 @@ export function cn(...inputs: ClassValue[]) {
 ---
 
 ## Changelog
+
+### Version 2.3 (Janvier 2026)
+- Configuration des horaires d'ouverture depuis l'admin
+- Nouvel onglet "Horaires" dans Gestion du site
+- Composant `BusinessHoursManager` pour gérer jours ouvrables et plages horaires
+- Server Actions `business-hours.actions.ts` pour CRUD
+- Pièces jointes supportées dans l'envoi de devis et mailing
 
 ### Version 2.2 (Janvier 2026)
 - Ouvertures exceptionnelles : possibilité d'ouvrir des créneaux sur jours fermés (weekends)

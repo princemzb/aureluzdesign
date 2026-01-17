@@ -4,19 +4,22 @@ import { getServices } from '@/lib/actions/services.actions';
 import { getPhotos } from '@/lib/actions/gallery.actions';
 import { getAllTestimonials } from '@/lib/actions/testimonials.actions';
 import { getLogo } from '@/lib/actions/settings.actions';
+import { getBusinessHours } from '@/lib/actions/business-hours.actions';
 import { ServicesManager } from '@/components/admin/services-manager';
 import { GalleryManager } from '@/components/admin/gallery-manager';
 import { TestimonialsManager } from '@/components/admin/testimonials-manager';
 import { LogoManager } from '@/components/admin/logo-manager';
+import { BusinessHoursManager } from '@/components/admin/business-hours-manager';
 import { BUSINESS_CONFIG } from '@/lib/utils/constants';
 import { SiteManagementTabs } from '@/components/admin/site-management-tabs';
 
 export default async function SiteManagementPage() {
-  const [services, photos, testimonials, logoUrl] = await Promise.all([
+  const [services, photos, testimonials, logoUrl, businessHours] = await Promise.all([
     getServices(),
     getPhotos(),
     getAllTestimonials(),
     getLogo(),
+    getBusinessHours(),
   ]);
 
   return (
@@ -48,6 +51,7 @@ export default async function SiteManagementPage() {
           }
           testimonialsContent={<TestimonialsManager testimonials={testimonials} />}
           logoContent={<LogoManager currentLogo={logoUrl} />}
+          hoursContent={<BusinessHoursManager businessHours={businessHours} />}
           counts={{
             services: services.length,
             photos: photos.length,
