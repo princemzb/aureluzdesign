@@ -69,6 +69,8 @@ Systeme de prise de rendez-vous en ligne avec :
 | `lib/validators/booking.schema.ts` | Schema Zod de validation |
 | `lib/services/email.service.ts` | Envoi des emails de confirmation |
 | `supabase/migrations/001_create_appointments.sql` | Tables SQL |
+| `components/admin/open-slots-manager.tsx` | Gestion ouvertures exceptionnelles |
+| `supabase/migrations/016_create_open_slots.sql` | Table open_slots |
 
 ## Concepts cles
 
@@ -296,6 +298,81 @@ const handleFormSubmit = async (data: BookingFormData) => {
 };
 ```
 
+### 6. Ouvertures Exceptionnelles (open_slots)
+
+Le systeme permet d'ouvrir des creneaux exceptionnels sur des jours normalement fermes (weekends).
+
+#### Concept
+
+```
+Jours normaux (Lun-Ven) : business_hours definit les horaires
+Jours fermes (Sam-Dim) : Normalement bloques
+    └── open_slots permet d'ouvrir des creneaux specifiques
+```
+
+#### Flux de donnees
+
+1. **Admin** cree un open_slot via `OpenSlotsManager`
+2. **Calendrier** affiche les dates avec open_slots en vert
+3. **TimeSlots** affiche les creneaux exceptionnels en vert avec icone
+
+#### Marquage des creneaux exceptionnels
+
+```typescript
+// lib/actions/booking.actions.ts
+export async function getAvailableSlots(date: string) {
+  // ...
+
+  // Pour un jour normalement ferme avec open_slots
+  if (!hours?.is_open && openSlots && openSlots.length > 0) {
+    // TOUS les creneaux sont exceptionnels
+    slots.push({
+      time: timeStr,
+      available: !bookedTimes.has(timeStr) && !isTimeBlocked(timeStr),
+      isExceptional: true,  // Car jour normalement ferme
+    });
+  }
+
+  // Pour un jour ouvert avec open_slots en dehors des heures normales
+  if (hours?.is_open && openSlots) {
+    // Seuls les creneaux HORS heures normales sont exceptionnels
+    if (hour < openHour || hour >= closeHour) {
+      slots.push({
+        time: timeStr,
+        available: !bookedTimes.has(timeStr),
+        isExceptional: true,  // Car hors heures normales
+      });
+    }
+  }
+}
+```
+
+#### Affichage dans l'UI
+
+Le calendrier et les creneaux utilisent un style vert distinct :
+
+```typescript
+// components/booking/booking-calendar.tsx
+// Dates avec ouvertures exceptionnelles
+isCurrentMonth && isOpen && !isSelected &&
+  'bg-green-100 text-green-800 hover:bg-green-200 ring-1 ring-green-300'
+
+// components/booking/time-slots.tsx
+// Creneaux exceptionnels individuels
+slot.available && !isSelected && isExceptional &&
+  'bg-green-100 hover:bg-green-200 text-green-800 ring-1 ring-green-300'
+```
+
+#### Note sur le delai de reservation
+
+Les ouvertures exceptionnelles contournent le delai minimum de 24h :
+
+```typescript
+// isDateDisabled dans booking-calendar.tsx
+if (isBefore(date, minDate) && !hasExceptionalOpening) return true;
+if (hasExceptionalOpening) return false;  // Bypass du delai
+```
+
 ## Schema de la base
 
 ```sql
@@ -333,6 +410,17 @@ CREATE TABLE blocked_slots (
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     reason TEXT
+);
+
+-- Creneaux ouverts exceptionnellement (weekends, etc.)
+CREATE TABLE open_slots (
+    id UUID PRIMARY KEY,
+    date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    reason VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(date, start_time)
 );
 ```
 
@@ -376,6 +464,21 @@ L'admin peut :
 - Confirmer un RDV pending (`pending-appointment-actions.tsx`)
 - Annuler un RDV (`appointment-actions.tsx`)
 - Bloquer des creneaux (`blocked_slots`)
+- Ouvrir des creneaux exceptionnels (`open_slots`) via `OpenSlotsManager`
+
+### Gestion des ouvertures exceptionnelles
+
+Le composant `OpenSlotsManager` permet d'ouvrir des creneaux sur les jours fermes :
+
+```typescript
+// Server Actions disponibles (lib/actions/admin.actions.ts)
+createOpenSlot(date, startTime, endTime, reason?)  // Creer une ouverture
+deleteOpenSlot(slotId)                             // Supprimer une ouverture
+getOpenSlots()                                     // Lister toutes les ouvertures
+getOpenSlotsForDate(date)                          // Ouvertures pour une date
+```
+
+L'interface admin affiche les ouvertures existantes avec possibilite de suppression.
 
 Les actions admin sont protegees par RLS :
 

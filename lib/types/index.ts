@@ -29,6 +29,15 @@ export interface BlockedSlot {
   created_at: string;
 }
 
+export interface OpenSlot {
+  id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  reason: string | null;
+  created_at: string;
+}
+
 export interface Photo {
   id: string;
   url: string;
@@ -81,6 +90,7 @@ export interface UpdateAppointmentInput {
 export interface TimeSlot {
   time: string;
   available: boolean;
+  isExceptional?: boolean; // True if this is an exceptional opening slot
 }
 
 export interface DayAvailability {

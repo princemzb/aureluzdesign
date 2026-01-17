@@ -8,7 +8,7 @@ import { TimeSlots } from './time-slots';
 import { BookingForm } from './booking-form';
 import { BookingConfirmation } from './booking-confirmation';
 import { format } from '@/lib/utils/date';
-import { getAvailableSlots } from '@/lib/actions/booking.actions';
+import { getAvailableSlots, getDatesWithOpenSlots } from '@/lib/actions/booking.actions';
 import { trackFunnelStep } from '@/components/analytics/tracker';
 import type { BookingFormData } from '@/lib/validators/booking.schema';
 import type { TimeSlot } from '@/lib/types';
@@ -18,12 +18,14 @@ type BookingStep = 'date' | 'time' | 'form' | 'confirmation';
 interface BookingWizardProps {
   blockedDates?: string[];
   closedDays?: number[];
+  openDates?: string[];
   onSubmit?: (data: BookingFormData) => Promise<{ success: boolean; error?: string }>;
 }
 
 export function BookingWizard({
   blockedDates = [],
   closedDays = [0, 6],
+  openDates: initialOpenDates = [],
   onSubmit,
 }: BookingWizardProps) {
   const [step, setStep] = useState<BookingStep>('date');
@@ -34,6 +36,20 @@ export function BookingWizard({
   const [error, setError] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [openDates, setOpenDates] = useState<string[]>(initialOpenDates);
+
+  // Fetch open dates on mount
+  useEffect(() => {
+    const fetchOpenDates = async () => {
+      try {
+        const dates = await getDatesWithOpenSlots();
+        setOpenDates(dates);
+      } catch (err) {
+        console.error('Error fetching open dates:', err);
+      }
+    };
+    fetchOpenDates();
+  }, []);
 
   // Fetch available slots when date changes
   useEffect(() => {
@@ -43,7 +59,11 @@ export function BookingWizard({
         try {
           const dateStr = format(selectedDate, 'yyyy-MM-dd');
           const result = await getAvailableSlots(dateStr);
-          setAvailableSlots(result.slots.map(s => ({ time: s.time, available: s.available })));
+          setAvailableSlots(result.slots.map(s => ({
+            time: s.time,
+            available: s.available,
+            isExceptional: s.isExceptional
+          })));
         } catch (err) {
           console.error('Error fetching slots:', err);
           setAvailableSlots([]);
@@ -175,6 +195,7 @@ export function BookingWizard({
             onDateSelect={handleDateSelect}
             blockedDates={blockedDates}
             closedDays={closedDays}
+            openDates={openDates}
           />
         )}
 

@@ -397,6 +397,7 @@ aureluz/
 │   │   ├── quote-form.tsx            # Formulaire devis
 │   │   ├── gallery-manager.tsx       # Gestion galerie
 │   │   ├── services-manager.tsx      # Gestion services
+│   │   ├── open-slots-manager.tsx    # Gestion ouvertures exceptionnelles
 │   │   ├── preview-wrapper.tsx       # Aperçu responsive
 │   │   └── ...
 │   │
@@ -726,33 +727,39 @@ export async function createAppointment(formData: FormData) {
 │ date: date           │       │ reason: varchar?     │       │ is_open: boolean     │
 │ start_time: time     │       │ created_at: timestamp│       └──────────────────────┘
 │ end_time: time       │       └──────────────────────┘
-│ event_type: enum     │
-│ message: text?       │       ┌──────────────────────┐       ┌──────────────────────┐
-│ status: enum         │       │       photos         │       │      services        │
-│ created_at: timestamp│       ├──────────────────────┤       ├──────────────────────┤
-│ updated_at: timestamp│       │ id: uuid [PK]        │       │ id: uuid [PK]        │
-└──────────────────────┘       │ url: varchar         │       │ emoji: varchar       │
-                               │ alt: varchar         │       │ title: varchar       │
-┌──────────────────────┐       │ category: enum       │       │ description: text    │
-│       quotes         │       │ display_order: int   │       │ display_order: int   │
-├──────────────────────┤       │ created_at: timestamp│       │ is_active: boolean   │
-│ id: uuid [PK]        │       └──────────────────────┘       │ created_at: timestamp│
-│ quote_number: varchar│                                      └──────────────────────┘
-│ client_name: varchar │       ┌──────────────────────┐
-│ client_email: varchar│       │    testimonials      │       ┌──────────────────────┐
-│ client_phone: varchar│       ├──────────────────────┤       │   site_settings      │
-│ client_address: text │       │ id: uuid [PK]        │       ├──────────────────────┤
-│ items: jsonb         │       │ client_name: varchar │       │ id: uuid [PK]        │
-│ vat_rate: decimal    │       │ client_email: varchar│       │ key: varchar [UK]    │
-│ subtotal: decimal    │       │ event_type: varchar  │       │ value: text          │
-│ vat_amount: decimal  │       │ rating: int          │       │ type: varchar        │
-│ total: decimal       │       │ title: varchar       │       │ description: text    │
-│ notes: text?         │       │ content: text        │       │ updated_at: timestamp│
-│ validity_days: int   │       │ status: enum         │       └──────────────────────┘
-│ status: enum         │       │ approved_at: timestamp│
-│ created_at: timestamp│       │ created_at: timestamp│
-│ sent_at: timestamp?  │       └──────────────────────┘
-└──────────────────────┘
+│ event_type: enum     │                                      ┌──────────────────────┐
+│ message: text?       │       ┌──────────────────────┐       │      open_slots      │
+│ status: enum         │       │       photos         │       ├──────────────────────┤
+│ created_at: timestamp│       ├──────────────────────┤       │ id: uuid [PK]        │
+│ updated_at: timestamp│       │ id: uuid [PK]        │       │ date: date           │
+└──────────────────────┘       │ url: varchar         │       │ start_time: time     │
+                               │ alt: varchar         │       │ end_time: time       │
+┌──────────────────────┐       │ category: enum       │       │ reason: varchar?     │
+│       quotes         │       │ display_order: int   │       │ created_at: timestamp│
+├──────────────────────┤       │ created_at: timestamp│       └──────────────────────┘
+│ id: uuid [PK]        │       └──────────────────────┘
+│ quote_number: varchar│                                      ┌──────────────────────┐
+│ client_name: varchar │       ┌──────────────────────┐       │      services        │
+│ client_email: varchar│       │    testimonials      │       ├──────────────────────┤
+│ client_phone: varchar│       ├──────────────────────┤       │ id: uuid [PK]        │
+│ client_address: text │       │ id: uuid [PK]        │       │ emoji: varchar       │
+│ items: jsonb         │       │ client_name: varchar │       │ title: varchar       │
+│ vat_rate: decimal    │       │ client_email: varchar│       │ description: text    │
+│ subtotal: decimal    │       │ event_type: varchar  │       │ display_order: int   │
+│ vat_amount: decimal  │       │ rating: int          │       │ is_active: boolean   │
+│ total: decimal       │       │ title: varchar       │       │ created_at: timestamp│
+│ notes: text?         │       │ content: text        │       └──────────────────────┘
+│ validity_days: int   │       │ status: enum         │
+│ status: enum         │       │ approved_at: timestamp│      ┌──────────────────────┐
+│ created_at: timestamp│       │ created_at: timestamp│       │   site_settings      │
+│ sent_at: timestamp?  │       └──────────────────────┘       ├──────────────────────┤
+└──────────────────────┘                                      │ id: uuid [PK]        │
+                                                              │ key: varchar [UK]    │
+                                                              │ value: text          │
+                                                              │ type: varchar        │
+                                                              │ description: text    │
+                                                              │ updated_at: timestamp│
+                                                              └──────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                            ANALYTICS TABLES                                   │
@@ -1782,11 +1789,20 @@ export function cn(...inputs: ClassValue[]) {
 | `011` | Ajout paramètres contact |
 | `012-014` | `quote_payments`, `invoices` - Paiements multi-échéances |
 | `015` | Ajout `accepted_at` - Date acceptation devis |
+| `016` | `open_slots` - Créneaux ouverts exceptionnellement |
 | `20240106*` | `testimonials` - Témoignages |
 
 ---
 
 ## Changelog
+
+### Version 2.2 (Janvier 2026)
+- Ouvertures exceptionnelles : possibilité d'ouvrir des créneaux sur jours fermés (weekends)
+- Nouvelle table `open_slots` pour gérer les ouvertures
+- Composant `OpenSlotsManager` dans l'admin (page Paramètres)
+- Créneaux exceptionnels affichés en vert dans le calendrier et les slots
+- Propriété `isExceptional` sur les créneaux pour distinction visuelle
+- Les ouvertures exceptionnelles contournent le délai de 24h
 
 ### Version 2.1 (Janvier 2026)
 - Workflow devis amélioré : acceptation client avant paiement

@@ -1,12 +1,14 @@
 import { Settings } from 'lucide-react';
-import { getBlockedSlots } from '@/lib/actions/admin.actions';
+import { getBlockedSlots, getOpenSlots } from '@/lib/actions/admin.actions';
 import { getContactSettings } from '@/lib/actions/settings.actions';
 import { BlockedSlotsManager } from '@/components/admin/blocked-slots-manager';
+import { OpenSlotsManager } from '@/components/admin/open-slots-manager';
 import { ContactSettingsManager } from '@/components/admin/contact-settings-manager';
 
 export default async function SettingsPage() {
-  const [blockedSlots, contactSettings] = await Promise.all([
+  const [blockedSlots, openSlots, contactSettings] = await Promise.all([
     getBlockedSlots(),
+    getOpenSlots(),
     getContactSettings(),
   ]);
 
@@ -29,6 +31,9 @@ export default async function SettingsPage() {
 
       {/* Contact settings */}
       <ContactSettingsManager initialSettings={contactSettings} />
+
+      {/* Open slots manager (exceptional openings) */}
+      <OpenSlotsManager openSlots={openSlots} />
 
       {/* Blocked slots manager */}
       <BlockedSlotsManager blockedSlots={blockedSlots} />

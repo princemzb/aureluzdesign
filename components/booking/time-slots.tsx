@@ -1,15 +1,20 @@
 'use client';
 
-import { Clock } from 'lucide-react';
+import { Clock, CalendarPlus } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { generateTimeSlots, format, frLocale } from '@/lib/utils/date';
-import type { TimeSlot } from '@/lib/types';
+
+interface ExtendedTimeSlot {
+  time: string;
+  available: boolean;
+  isExceptional?: boolean;
+}
 
 interface TimeSlotsProps {
   date: Date;
   selectedTime: string | null;
   onTimeSelect: (time: string) => void;
-  availableSlots?: TimeSlot[];
+  availableSlots?: ExtendedTimeSlot[];
   openTime?: string;
   closeTime?: string;
 }
@@ -24,12 +29,15 @@ export function TimeSlots({
 }: TimeSlotsProps) {
   const allSlots = generateTimeSlots(openTime, closeTime, 60);
 
-  const slots: TimeSlot[] = availableSlots || allSlots.map((time) => ({
+  const slots: ExtendedTimeSlot[] = availableSlots || allSlots.map((time) => ({
     time,
     available: true,
+    isExceptional: false,
   }));
 
   const availableCount = slots.filter((s) => s.available).length;
+  const exceptionalCount = slots.filter((s) => s.isExceptional).length;
+  const hasExceptionalSlots = exceptionalCount > 0;
 
   return (
     <div className="bg-background rounded-xl border border-border p-6">
@@ -44,6 +52,11 @@ export function TimeSlots({
           </h3>
           <p className="text-sm text-muted-foreground">
             {availableCount} créneau{availableCount > 1 ? 'x' : ''} disponible{availableCount > 1 ? 's' : ''}
+            {hasExceptionalSlots && (
+              <span className="text-green-600 font-medium">
+                {' '}• dont {exceptionalCount} exceptionnel{exceptionalCount > 1 ? 's' : ''}
+              </span>
+            )}
           </p>
         </div>
       </div>
@@ -53,6 +66,7 @@ export function TimeSlots({
         {slots.map((slot) => {
           const isSelected = selectedTime === slot.time;
           const isDisabled = !slot.available;
+          const isExceptional = slot.isExceptional;
 
           return (
             <button
@@ -61,12 +75,22 @@ export function TimeSlots({
               disabled={isDisabled}
               className={cn(
                 'py-3 px-4 rounded-lg text-sm font-medium transition-all',
-                slot.available && !isSelected && 'bg-secondary hover:bg-secondary/80 text-foreground',
+                // Normal available slots
+                slot.available && !isSelected && !isExceptional && 'bg-secondary hover:bg-secondary/80 text-foreground',
+                // Exceptional slots (green) - only these specific slots
+                slot.available && !isSelected && isExceptional && 'bg-green-100 hover:bg-green-200 text-green-800 ring-1 ring-green-300',
+                // Selected slot
                 isSelected && 'bg-primary text-primary-foreground',
+                // Disabled slot
                 isDisabled && 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
               )}
             >
-              {slot.time}
+              <span className="flex items-center justify-center gap-1">
+                {slot.time}
+                {isExceptional && slot.available && !isSelected && (
+                  <CalendarPlus className="h-3 w-3" />
+                )}
+              </span>
             </button>
           );
         })}

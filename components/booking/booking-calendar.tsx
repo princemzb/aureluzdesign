@@ -26,6 +26,7 @@ interface BookingCalendarProps {
   onDateSelect: (date: Date) => void;
   blockedDates?: string[];
   closedDays?: number[];
+  openDates?: string[]; // Dates with exceptional open slots
 }
 
 export function BookingCalendar({
@@ -33,6 +34,7 @@ export function BookingCalendar({
   onDateSelect,
   blockedDates = [],
   closedDays = [0, 6],
+  openDates = [],
 }: BookingCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
@@ -41,11 +43,30 @@ export function BookingCalendar({
   const calendarDays = getCalendarDays(currentMonth);
 
   const isDateDisabled = (date: Date): boolean => {
-    if (isBefore(date, minDate)) return true;
+    const dateStr = format(date, 'yyyy-MM-dd');
+
+    // Check if date has open slots FIRST - these override closed days
+    const hasExceptionalOpening = openDates.includes(dateStr);
+
+    // Max date check always applies
     if (isAfter(date, maxDate)) return true;
+
+    // Min date check - but allow exceptional openings even if within 24h
+    if (isBefore(date, minDate) && !hasExceptionalOpening) return true;
+
+    // If date has open slots, it's NOT disabled (even if it's a weekend)
+    if (hasExceptionalOpening) return false;
+
+    // Otherwise, check if it's a closed day
     if (closedDays.includes(date.getDay())) return true;
-    if (blockedDates.includes(format(date, 'yyyy-MM-dd'))) return true;
+    if (blockedDates.includes(dateStr)) return true;
     return false;
+  };
+
+  // Check if a date has exceptional open slots (for highlighting)
+  const hasOpenSlots = (date: Date): boolean => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return openDates.includes(dateStr);
   };
 
   const goToPreviousMonth = () => {
@@ -113,6 +134,7 @@ export function BookingCalendar({
           const isSelected = selectedDate && isSameDay(day, selectedDate);
           const isDisabled = isDateDisabled(day);
           const isToday = isSameDay(day, new Date());
+          const isOpen = hasOpenSlots(day);
 
           return (
             <button
@@ -125,7 +147,9 @@ export function BookingCalendar({
                 isCurrentMonth && !isDisabled && 'hover:bg-secondary',
                 isCurrentMonth && isDisabled && 'text-muted-foreground/50 cursor-not-allowed',
                 isSelected && 'bg-primary text-primary-foreground hover:bg-primary/90',
-                isToday && !isSelected && 'ring-1 ring-primary/50'
+                isToday && !isSelected && 'ring-1 ring-primary/50',
+                // Highlight dates with exceptional open slots
+                isCurrentMonth && isOpen && !isSelected && 'bg-green-100 text-green-800 hover:bg-green-200 ring-1 ring-green-300'
               )}
             >
               {format(day, 'd')}
@@ -143,6 +167,10 @@ export function BookingCalendar({
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded ring-1 ring-primary/50" />
           <span>Aujourd&apos;hui</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded bg-green-100 ring-1 ring-green-300" />
+          <span>Ouverture exceptionnelle</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded bg-muted-foreground/20" />

@@ -232,3 +232,100 @@ export async function getBlockedSlots() {
 
   return data || [];
 }
+
+// ============================================
+// Créneaux ouverts (Open Slots)
+// Pour ouvrir des créneaux sur des jours normalement fermés
+// ============================================
+
+export async function createOpenSlot(
+  date: string,
+  startTime: string,
+  endTime: string,
+  reason?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    const { error } = await supabase.from('open_slots').insert({
+      date,
+      start_time: startTime,
+      end_time: endTime,
+      reason: reason || null,
+    });
+
+    if (error) {
+      if (error.code === '23505') {
+        return { success: false, error: 'Ce créneau est déjà ouvert' };
+      }
+      return { success: false, error: 'Erreur lors de la création' };
+    }
+
+    revalidatePath('/admin/settings');
+    revalidatePath('/booking');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error in createOpenSlot:', error);
+    return { success: false, error: 'Une erreur est survenue' };
+  }
+}
+
+export async function deleteOpenSlot(
+  slotId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    const { error } = await supabase
+      .from('open_slots')
+      .delete()
+      .eq('id', slotId);
+
+    if (error) {
+      return { success: false, error: 'Erreur lors de la suppression' };
+    }
+
+    revalidatePath('/admin/settings');
+    revalidatePath('/booking');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error in deleteOpenSlot:', error);
+    return { success: false, error: 'Une erreur est survenue' };
+  }
+}
+
+export async function getOpenSlots() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('open_slots')
+    .select('*')
+    .order('date', { ascending: true })
+    .order('start_time', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching open slots:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function getOpenSlotsForDate(date: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('open_slots')
+    .select('*')
+    .eq('date', date)
+    .order('start_time', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching open slots for date:', error);
+    return [];
+  }
+
+  return data || [];
+}

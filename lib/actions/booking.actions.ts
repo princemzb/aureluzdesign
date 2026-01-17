@@ -114,7 +114,7 @@ export async function createAppointment(
 }
 
 export async function getAvailableSlots(date: string): Promise<{
-  slots: { time: string; available: boolean }[];
+  slots: { time: string; available: boolean; isExceptional?: boolean }[];
   isOpen: boolean;
 }> {
   try {
@@ -128,7 +128,14 @@ export async function getAvailableSlots(date: string): Promise<{
       .eq('day_of_week', dayOfWeek)
       .single();
 
-    if (!hours?.is_open) {
+    // Get open slots for this specific date (exceptional openings)
+    const { data: openSlots } = await supabase
+      .from('open_slots')
+      .select('start_time, end_time')
+      .eq('date', date);
+
+    // If day is normally closed AND no open slots, return empty
+    if (!hours?.is_open && (!openSlots || openSlots.length === 0)) {
       return { slots: [], isOpen: false };
     }
 
@@ -167,22 +174,113 @@ export async function getAvailableSlots(date: string): Promise<{
       });
     };
 
-    // Generate time slots
-    const slots: { time: string; available: boolean }[] = [];
-    const openHour = parseInt(hours.open_time.split(':')[0]);
-    const closeHour = parseInt(hours.close_time.split(':')[0]);
-
-    for (let hour = openHour; hour < closeHour; hour++) {
-      const timeStr = `${String(hour).padStart(2, '0')}:00`;
-      slots.push({
-        time: timeStr,
-        available: !bookedTimes.has(timeStr) && !isTimeBlocked(timeStr),
+    // Helper to check if an hour is within open_slots ranges
+    const isHourInOpenSlots = (hour: number): boolean => {
+      if (!openSlots || openSlots.length === 0) return false;
+      return openSlots.some((o) => {
+        const startHour = parseInt(o.start_time.split(':')[0]);
+        const endHour = parseInt(o.end_time.split(':')[0]);
+        return hour >= startHour && hour < endHour;
       });
+    };
+
+    // Generate time slots
+    const slots: { time: string; available: boolean; isExceptional?: boolean }[] = [];
+
+    // If day is normally open, use business hours
+    if (hours?.is_open) {
+      const openHour = parseInt(hours.open_time.split(':')[0]);
+      const closeHour = parseInt(hours.close_time.split(':')[0]);
+
+      for (let hour = openHour; hour < closeHour; hour++) {
+        const timeStr = `${String(hour).padStart(2, '0')}:00`;
+        slots.push({
+          time: timeStr,
+          available: !bookedTimes.has(timeStr) && !isTimeBlocked(timeStr),
+          isExceptional: false, // Normal business hours
+        });
+      }
+    }
+
+    // If day is normally closed but has open slots, use open slots time ranges
+    if (!hours?.is_open && openSlots && openSlots.length > 0) {
+      // Collect all unique hours from open slots
+      const openHours = new Set<number>();
+      openSlots.forEach((o) => {
+        const startHour = parseInt(o.start_time.split(':')[0]);
+        const endHour = parseInt(o.end_time.split(':')[0]);
+        for (let hour = startHour; hour < endHour; hour++) {
+          openHours.add(hour);
+        }
+      });
+
+      // Generate slots for open hours - ALL are exceptional since day is normally closed
+      const sortedHours = Array.from(openHours).sort((a, b) => a - b);
+      for (const hour of sortedHours) {
+        const timeStr = `${String(hour).padStart(2, '0')}:00`;
+        slots.push({
+          time: timeStr,
+          available: !bookedTimes.has(timeStr) && !isTimeBlocked(timeStr),
+          isExceptional: true, // Exceptional because day is normally closed
+        });
+      }
+    }
+
+    // Also add any open slot hours that are outside normal business hours
+    if (hours?.is_open && openSlots && openSlots.length > 0) {
+      const openHour = parseInt(hours.open_time.split(':')[0]);
+      const closeHour = parseInt(hours.close_time.split(':')[0]);
+      const existingTimes = new Set(slots.map((s) => s.time));
+
+      openSlots.forEach((o) => {
+        const startHour = parseInt(o.start_time.split(':')[0]);
+        const endHour = parseInt(o.end_time.split(':')[0]);
+        for (let hour = startHour; hour < endHour; hour++) {
+          // Only add if outside normal hours and not already in slots
+          if ((hour < openHour || hour >= closeHour)) {
+            const timeStr = `${String(hour).padStart(2, '0')}:00`;
+            if (!existingTimes.has(timeStr)) {
+              slots.push({
+                time: timeStr,
+                available: !bookedTimes.has(timeStr) && !isTimeBlocked(timeStr),
+                isExceptional: true, // Exceptional because outside normal hours
+              });
+              existingTimes.add(timeStr);
+            }
+          }
+        }
+      });
+
+      // Sort slots by time
+      slots.sort((a, b) => a.time.localeCompare(b.time));
     }
 
     return { slots, isOpen: true };
   } catch (error) {
     console.error('Error getting available slots:', error);
     return { slots: [], isOpen: false };
+  }
+}
+
+// Get dates with open slots (for calendar highlighting)
+export async function getDatesWithOpenSlots(): Promise<string[]> {
+  try {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from('open_slots')
+      .select('date')
+      .gte('date', new Date().toISOString().split('T')[0]);
+
+    if (error) {
+      console.error('Error fetching dates with open slots:', error);
+      return [];
+    }
+
+    // Return unique dates
+    return [...new Set(data?.map((d) => d.date) || [])];
+  } catch (error) {
+    console.error('Error in getDatesWithOpenSlots:', error);
+    return [];
   }
 }

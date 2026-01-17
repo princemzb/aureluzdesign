@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { BookingWizard } from '@/components/booking/booking-wizard';
-import { createAppointment } from '@/lib/actions/booking.actions';
+import { createAppointment, getDatesWithOpenSlots } from '@/lib/actions/booking.actions';
 
 export const metadata: Metadata = {
   title: 'Réserver une consultation',
@@ -8,7 +8,10 @@ export const metadata: Metadata = {
     'Réservez une consultation gratuite d\'une heure avec AureLuz pour discuter de votre projet de décoration événementielle.',
 };
 
-export default function BookingPage() {
+export default async function BookingPage() {
+  // Pre-fetch open dates on server for immediate availability
+  const openDates = await getDatesWithOpenSlots();
+
   return (
     <div className="section-padding">
       <div className="container-main">
@@ -29,6 +32,7 @@ export default function BookingPage() {
           {/* Booking wizard */}
           <BookingWizard
             closedDays={[0, 6]}
+            openDates={openDates}
             onSubmit={createAppointment}
           />
         </div>
