@@ -32,6 +32,31 @@ export async function getBusinessHours(): Promise<BusinessHour[]> {
   }
 }
 
+/**
+ * Get days that are closed (is_open = false)
+ * Returns array of day_of_week numbers (0 = Sunday, 6 = Saturday)
+ */
+export async function getClosedDays(): Promise<number[]> {
+  try {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from('business_hours')
+      .select('day_of_week')
+      .eq('is_open', false);
+
+    if (error) {
+      console.error('Error fetching closed days:', error);
+      return [0, 6]; // Fallback to weekends
+    }
+
+    return data?.map((d) => d.day_of_week) || [0, 6];
+  } catch (error) {
+    console.error('Error in getClosedDays:', error);
+    return [0, 6];
+  }
+}
+
 export async function updateBusinessHour(
   dayOfWeek: number,
   updates: {

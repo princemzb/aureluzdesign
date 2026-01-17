@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { BookingWizard } from '@/components/booking/booking-wizard';
 import { createAppointment, getDatesWithOpenSlots } from '@/lib/actions/booking.actions';
+import { getClosedDays } from '@/lib/actions/business-hours.actions';
 
 export const metadata: Metadata = {
   title: 'Réserver une consultation',
@@ -9,8 +10,11 @@ export const metadata: Metadata = {
 };
 
 export default async function BookingPage() {
-  // Pre-fetch open dates on server for immediate availability
-  const openDates = await getDatesWithOpenSlots();
+  // Pre-fetch data on server for immediate availability
+  const [openDates, closedDays] = await Promise.all([
+    getDatesWithOpenSlots(),
+    getClosedDays(),
+  ]);
 
   return (
     <div className="section-padding">
@@ -31,7 +35,7 @@ export default async function BookingPage() {
 
           {/* Booking wizard */}
           <BookingWizard
-            closedDays={[0, 6]}
+            closedDays={closedDays}
             openDates={openDates}
             onSubmit={createAppointment}
           />

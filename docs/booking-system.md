@@ -484,15 +484,27 @@ L'admin peut configurer les jours d'ouverture et les plages horaires depuis l'on
 ```typescript
 // Server Actions disponibles
 getBusinessHours()                           // Recuperer tous les jours
+getClosedDays()                              // Jours fermes (pour le calendrier)
 updateBusinessHour(dayOfWeek, updates)       // Modifier un jour
 updateAllBusinessHours(hours[])              // Modifier tous les jours
 applyHoursToAllDays(open, close, toAll?)     // Appliquer horaires globaux
 ```
 
 **Impact sur les reservations :**
-- Les jours avec `is_open = false` n'apparaissent pas dans le calendrier
+- Les jours avec `is_open = false` sont grises dans le calendrier (non cliquables)
 - Les creneaux sont generes entre `open_time` et `close_time` (intervalles 1h)
 - Ex: 09:00-18:00 = creneaux a 09:00, 10:00, 11:00... 17:00
+
+**Integration avec le calendrier :**
+```typescript
+// app/(public)/booking/page.tsx
+const [openDates, closedDays] = await Promise.all([
+  getDatesWithOpenSlots(),  // Ouvertures exceptionnelles
+  getClosedDays(),          // Jours fermes dynamiques
+]);
+
+<BookingWizard closedDays={closedDays} openDates={openDates} />
+```
 
 ### Gestion des ouvertures exceptionnelles
 
