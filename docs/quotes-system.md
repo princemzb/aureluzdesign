@@ -224,7 +224,60 @@ CREATE TRIGGER set_quote_number
 - Deuxieme devis 2024 : `2024-0002`
 - Premier devis 2025 : `2025-0001`
 
-### 5. Workflow de Statuts
+### 5. Envoi de Devis par Email avec Pieces Jointes
+
+Lors de l'envoi d'un devis, l'admin peut ajouter des pieces jointes supplementaires :
+
+```typescript
+// components/admin/quote-actions.tsx
+const [attachments, setAttachments] = useState<File[]>([]);
+
+// Conversion en base64 avant envoi
+const attachmentData = await Promise.all(
+  attachments.map(async (file) => {
+    const buffer = await file.arrayBuffer();
+    const base64 = btoa(
+      new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    );
+    return { filename: file.name, content: base64 };
+  })
+);
+
+// Envoi via API
+await fetch(`/api/quotes/${quote.id}/send`, {
+  method: 'POST',
+  body: JSON.stringify({
+    subject: emailSubject,
+    body: emailBody,
+    attachments: attachmentData,  // Pieces jointes additionnelles
+  }),
+});
+```
+
+**Dans l'API `/api/quotes/[id]/send/route.ts` :**
+```typescript
+// Le PDF du devis est TOUJOURS joint automatiquement
+const emailAttachments = [
+  { filename: `devis-${quote.quote_number}.pdf`, content: pdfBuffer },
+];
+
+// Ajout des pieces jointes additionnelles (conversion base64 -> Buffer)
+for (const att of additionalAttachments) {
+  emailAttachments.push({
+    filename: att.filename,
+    content: Buffer.from(att.content, 'base64'),
+  });
+}
+```
+
+**UI dans quote-actions.tsx :**
+- Section "Pieces jointes" dans le modal d'envoi
+- Le PDF du devis est toujours joint automatiquement (non supprimable)
+- Bouton "Ajouter une piece jointe" pour fichiers additionnels
+- Liste des fichiers avec nom, taille et bouton de suppression
+- Formats acceptes : PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, TXT
+
+### 6. Workflow de Statuts
 
 ```
 draft ────► sent ────► accepted ────► paid

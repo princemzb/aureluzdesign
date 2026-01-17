@@ -173,12 +173,15 @@ export class EmailTemplatesService {
 L'envoi en masse respecte les limites Resend :
 
 ```typescript
-export async function sendSalonCampaign(contacts: Contact[]): Promise<SendCampaignResult> {
+export async function sendSalonCampaign(
+  contacts: Contact[],
+  attachments?: Attachment[]
+): Promise<SendCampaignResult> {
   const result = { total: contacts.length, sent: 0, failed: 0, errors: [] };
 
   for (const contact of contacts) {
     try {
-      const emailResult = await sendSalonCampaignEmail(contact.email, contact.name);
+      const emailResult = await sendSalonCampaignEmail(contact.email, contact.name, attachments);
 
       if (emailResult.success) {
         result.sent++;
@@ -204,6 +207,44 @@ export async function sendSalonCampaign(contacts: Contact[]): Promise<SendCampai
 **Pourquoi le delai :**
 - Resend a des limites de rate (ex: 10 emails/seconde)
 - 200ms = 5 emails/seconde (marge de securite)
+
+### 6. Pieces Jointes
+
+Les campagnes email supportent les pieces jointes :
+
+```typescript
+// Interface pour les pieces jointes
+interface Attachment {
+  filename: string;
+  content: string; // base64
+}
+
+// Cote client (mailing-form.tsx)
+const [attachments, setAttachments] = useState<File[]>([]);
+
+// Conversion en base64 avant envoi
+const attachmentData = await Promise.all(
+  attachments.map(async (file) => {
+    const buffer = await file.arrayBuffer();
+    const base64 = btoa(
+      new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    );
+    return { filename: file.name, content: base64 };
+  })
+);
+
+// Envoi via server action
+await sendSalonCampaign(contacts, attachmentData);
+```
+
+**Formats acceptes :**
+- Documents : PDF, DOC, DOCX, XLS, XLSX, TXT
+- Images : JPG, JPEG, PNG, GIF
+
+**UI dans mailing-form.tsx :**
+- Bouton "Ajouter une piece jointe"
+- Liste des fichiers avec nom et taille
+- Bouton de suppression pour chaque fichier
 
 ## Types d'Emails
 
