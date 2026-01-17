@@ -1403,6 +1403,71 @@ export async function getSession() {
 }
 ```
 
+### 9.4 Timeout d'Inactivité (Sécurité Session)
+
+Pour renforcer la sécurité, un système de déconnexion automatique après 30 minutes d'inactivité est implémenté :
+
+```typescript
+// components/admin/session-timeout-provider.tsx
+'use client';
+
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { logout } from '@/lib/actions/auth.actions';
+
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+const WARNING_BEFORE_TIMEOUT = 5 * 60 * 1000; // Avertissement 5 min avant
+
+export function SessionTimeoutProvider({ children }) {
+  const [showWarning, setShowWarning] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
+
+  // Réinitialiser les timers à chaque activité
+  const resetTimers = useCallback(() => {
+    lastActivityRef.current = Date.now();
+    setShowWarning(false);
+
+    // Timer pour afficher l'avertissement
+    warningRef.current = setTimeout(() => {
+      setShowWarning(true);
+      // Lancer le compte à rebours
+    }, INACTIVITY_TIMEOUT - WARNING_BEFORE_TIMEOUT);
+
+    // Timer pour déconnexion automatique
+    timeoutRef.current = setTimeout(() => {
+      logout();
+    }, INACTIVITY_TIMEOUT);
+  }, []);
+
+  useEffect(() => {
+    // Écouter les événements d'activité
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    events.forEach(event => document.addEventListener(event, handleActivity));
+
+    return () => {
+      events.forEach(event => document.removeEventListener(event, handleActivity));
+    };
+  }, []);
+
+  return (
+    <>
+      {children}
+      {showWarning && <SessionWarningModal countdown={countdown} />}
+    </>
+  );
+}
+```
+
+**Fonctionnement :**
+- Détecte l'activité utilisateur (clics, clavier, scroll, touch)
+- Affiche un modal d'avertissement 5 minutes avant la déconnexion
+- Compte à rebours visible avec option "Continuer" ou "Déconnexion"
+- Déconnexion automatique après 30 minutes d'inactivité totale
+
+**Configuration recommandée Supabase :**
+- JWT expiry : 24 heures (Authentication → Settings dans le dashboard Supabase)
+
 ---
 
 ## 10. Système d'Analytics
@@ -1796,6 +1861,12 @@ export function cn(...inputs: ClassValue[]) {
 ---
 
 ## Changelog
+
+### Version 2.4 (Janvier 2026)
+- Sécurité session : timeout d'inactivité après 30 minutes
+- Modal d'avertissement avec compte à rebours 5 minutes avant déconnexion
+- Composant `SessionTimeoutProvider` intégré au layout admin
+- Tracking d'activité utilisateur (clics, clavier, scroll, touch)
 
 ### Version 2.3 (Janvier 2026)
 - Configuration des horaires d'ouverture depuis l'admin
