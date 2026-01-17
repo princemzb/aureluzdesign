@@ -9,7 +9,7 @@ import { createBlockedSlot, deleteBlockedSlot } from '@/lib/actions/admin.action
 import { format, parseISO } from '@/lib/utils/date';
 import type { BlockedSlot } from '@/lib/types';
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 5;
 
 interface BlockedSlotsManagerProps {
   blockedSlots: BlockedSlot[];

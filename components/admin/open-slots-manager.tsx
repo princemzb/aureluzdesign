@@ -9,7 +9,7 @@ import { createOpenSlot, deleteOpenSlot } from '@/lib/actions/admin.actions';
 import { format, parseISO } from '@/lib/utils/date';
 import type { OpenSlot } from '@/lib/types';
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 5;
 
 interface OpenSlotsManagerProps {
   openSlots: OpenSlot[];
