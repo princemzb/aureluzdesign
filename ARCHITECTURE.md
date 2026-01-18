@@ -1457,11 +1457,37 @@ Le `SessionTimeoutProvider` affiche un avertissement visuel 5 minutes avant la d
 // - Track l'activité utilisateur (clics, clavier, scroll, touch)
 ```
 
+#### Réinitialisation au Login
+
+Le cookie d'activité est réinitialisé à chaque connexion pour éviter une déconnexion immédiate :
+
+```typescript
+// lib/actions/auth.actions.ts
+export async function login(formData: FormData) {
+  // ... authentification Supabase ...
+
+  // Réinitialiser le cookie d'activité
+  const cookieStore = await cookies();
+  cookieStore.set(ACTIVITY_COOKIE_NAME, Date.now().toString(), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
+
+  redirect('/admin');
+}
+```
+
 #### Flux combiné
 
 ```
+Connexion :
+  → Cookie session_last_activity créé avec timestamp actuel
+  → Redirection vers /admin
+
 Utilisateur actif :
-  → Cookie session_last_activity mis à jour à chaque requête admin
+  → Cookie mis à jour à chaque requête admin
   → Pas d'avertissement
 
 Utilisateur inactif (onglet ouvert) :
