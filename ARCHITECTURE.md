@@ -1405,68 +1405,75 @@ export async function getSession() {
 
 ### 9.4 Timeout d'Inactivité (Sécurité Session)
 
-Pour renforcer la sécurité, un système de déconnexion automatique après 30 minutes d'inactivité est implémenté :
+Le système de sécurité de session comprend **deux niveaux de protection** :
+
+#### Niveau 1 : Validation Serveur (Middleware)
+
+Le middleware vérifie l'inactivité à chaque requête vers `/admin/*` :
 
 ```typescript
-// components/admin/session-timeout-provider.tsx
-'use client';
+// lib/supabase/middleware.ts
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { logout } from '@/lib/actions/auth.actions';
+const SESSION_INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+const ACTIVITY_COOKIE_NAME = 'session_last_activity';
 
-const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
-const WARNING_BEFORE_TIMEOUT = 5 * 60 * 1000; // Avertissement 5 min avant
+// Dans updateSession(), après vérification de l'utilisateur
+if (request.nextUrl.pathname.startsWith('/admin') && user) {
+  const lastActivityCookie = request.cookies.get(ACTIVITY_COOKIE_NAME);
+  const now = Date.now();
 
-export function SessionTimeoutProvider({ children }) {
-  const [showWarning, setShowWarning] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastActivityRef = useRef<number>(Date.now());
+  if (lastActivityCookie) {
+    const lastActivity = parseInt(lastActivityCookie.value, 10);
+    if (now - lastActivity > SESSION_INACTIVITY_TIMEOUT) {
+      // Session expirée : déconnexion forcée
+      await supabase.auth.signOut();
+      return NextResponse.redirect('/login?reason=inactivity');
+    }
+  }
 
-  // Réinitialiser les timers à chaque activité
-  const resetTimers = useCallback(() => {
-    lastActivityRef.current = Date.now();
-    setShowWarning(false);
-
-    // Timer pour afficher l'avertissement
-    warningRef.current = setTimeout(() => {
-      setShowWarning(true);
-      // Lancer le compte à rebours
-    }, INACTIVITY_TIMEOUT - WARNING_BEFORE_TIMEOUT);
-
-    // Timer pour déconnexion automatique
-    timeoutRef.current = setTimeout(() => {
-      logout();
-    }, INACTIVITY_TIMEOUT);
-  }, []);
-
-  useEffect(() => {
-    // Écouter les événements d'activité
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
-    events.forEach(event => document.addEventListener(event, handleActivity));
-
-    return () => {
-      events.forEach(event => document.removeEventListener(event, handleActivity));
-    };
-  }, []);
-
-  return (
-    <>
-      {children}
-      {showWarning && <SessionWarningModal countdown={countdown} />}
-    </>
-  );
+  // Mettre à jour le cookie d'activité
+  supabaseResponse.cookies.set(ACTIVITY_COOKIE_NAME, now.toString(), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
 }
 ```
 
-**Fonctionnement :**
-- Détecte l'activité utilisateur (clics, clavier, scroll, touch)
-- Affiche un modal d'avertissement 5 minutes avant la déconnexion
-- Compte à rebours visible avec option "Continuer" ou "Déconnexion"
-- Déconnexion automatique après 30 minutes d'inactivité totale
+**Avantages du middleware :**
+- Fonctionne même si le navigateur est fermé et rouvert
+- Vérifie côté serveur, impossible à contourner
+- Cookie httpOnly sécurisé
 
-**Configuration recommandée Supabase :**
-- JWT expiry : 24 heures (Authentication → Settings dans le dashboard Supabase)
+#### Niveau 2 : Avertissement Client (Provider)
+
+Le `SessionTimeoutProvider` affiche un avertissement visuel 5 minutes avant la déconnexion :
+
+```typescript
+// components/admin/session-timeout-provider.tsx
+// - Modal d'avertissement avec compte à rebours
+// - Boutons "Continuer" (reset) ou "Déconnexion"
+// - Track l'activité utilisateur (clics, clavier, scroll, touch)
+```
+
+#### Flux combiné
+
+```
+Utilisateur actif :
+  → Cookie session_last_activity mis à jour à chaque requête admin
+  → Pas d'avertissement
+
+Utilisateur inactif (onglet ouvert) :
+  → À 25 min : modal d'avertissement côté client
+  → À 30 min : déconnexion côté client
+
+Utilisateur ferme navigateur et revient après 30+ min :
+  → Middleware détecte cookie trop ancien
+  → Déconnexion forcée côté serveur
+  → Redirection vers /login?reason=inactivity
+  → Message explicatif affiché
+```
 
 ---
 
@@ -1863,10 +1870,11 @@ export function cn(...inputs: ClassValue[]) {
 ## Changelog
 
 ### Version 2.4 (Janvier 2026)
-- Sécurité session : timeout d'inactivité après 30 minutes
-- Modal d'avertissement avec compte à rebours 5 minutes avant déconnexion
-- Composant `SessionTimeoutProvider` intégré au layout admin
-- Tracking d'activité utilisateur (clics, clavier, scroll, touch)
+- Sécurité session renforcée avec double protection :
+  - **Middleware serveur** : vérifie le cookie `session_last_activity` à chaque requête
+  - **Provider client** : modal d'avertissement avec compte à rebours
+- Déconnexion automatique après 30 minutes d'inactivité (même si navigateur fermé)
+- Message explicatif sur la page de login après expiration (`?reason=inactivity`)
 
 ### Version 2.3 (Janvier 2026)
 - Configuration des horaires d'ouverture depuis l'admin

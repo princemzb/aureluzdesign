@@ -5,9 +5,9 @@ import { LogOut, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/lib/actions/auth.actions';
 
-// Configuration
+// Configuration du timeout d'inactivité
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
-const WARNING_BEFORE_TIMEOUT = 5 * 60 * 1000; // Show warning 5 minutes before
+const WARNING_BEFORE_TIMEOUT = 5 * 60 * 1000; // Avertissement 5 minutes avant
 
 interface SessionTimeoutProviderProps {
   children: React.ReactNode;
@@ -21,30 +21,33 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
   const warningRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
+  const showWarningRef = useRef(false); // Ref pour éviter les problèmes de closure
 
-  const handleLogout = useCallback(async () => {
-    // Clear all timers
+  // Sync ref avec state
+  useEffect(() => {
+    showWarningRef.current = showWarning;
+  }, [showWarning]);
+
+  const clearAllTimers = useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (warningRef.current) clearTimeout(warningRef.current);
     if (countdownRef.current) clearInterval(countdownRef.current);
-
-    await logout();
   }, []);
+
+  const handleLogout = useCallback(async () => {
+    clearAllTimers();
+    await logout();
+  }, [clearAllTimers]);
 
   const resetTimers = useCallback(() => {
     lastActivityRef.current = Date.now();
-
-    // Clear existing timers
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    if (warningRef.current) clearTimeout(warningRef.current);
-    if (countdownRef.current) clearInterval(countdownRef.current);
-
-    // Hide warning if shown
+    clearAllTimers();
     setShowWarning(false);
 
-    // Set warning timer (shows modal 5 min before logout)
+    // Set warning timer
     warningRef.current = setTimeout(() => {
       setShowWarning(true);
+      showWarningRef.current = true;
       setCountdown(WARNING_BEFORE_TIMEOUT / 1000);
 
       // Start countdown
@@ -63,22 +66,23 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
     timeoutRef.current = setTimeout(() => {
       handleLogout();
     }, INACTIVITY_TIMEOUT);
-  }, [handleLogout]);
+  }, [clearAllTimers, handleLogout]);
 
-  const handleActivity = useCallback(() => {
-    // Only reset if warning is not showing
-    // If warning is showing, user must click "Continue" to reset
-    if (!showWarning) {
-      resetTimers();
-    }
-  }, [showWarning, resetTimers]);
-
-  const handleContinueSession = () => {
+  const handleContinueSession = useCallback(() => {
     setShowWarning(false);
+    showWarningRef.current = false;
     resetTimers();
-  };
+  }, [resetTimers]);
 
+  // Setup event listeners une seule fois
   useEffect(() => {
+    const handleActivity = () => {
+      // Utiliser la ref pour vérifier si le warning est affiché
+      if (!showWarningRef.current) {
+        resetTimers();
+      }
+    };
+
     // Initial setup
     resetTimers();
 
@@ -95,11 +99,10 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
       events.forEach((event) => {
         document.removeEventListener(event, handleActivity);
       });
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (warningRef.current) clearTimeout(warningRef.current);
-      if (countdownRef.current) clearInterval(countdownRef.current);
+      clearAllTimers();
     };
-  }, [handleActivity, resetTimers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Format countdown
   const formatCountdown = (seconds: number): string => {

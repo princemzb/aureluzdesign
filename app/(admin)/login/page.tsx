@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { login } from '@/lib/actions/auth.actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Lock, Mail, Loader2 } from 'lucide-react';
+import { Lock, Mail, Loader2, Clock } from 'lucide-react';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -28,6 +29,8 @@ function SubmitButton() {
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const reason = searchParams.get('reason');
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -49,6 +52,14 @@ export default function LoginPage() {
             Espace Administration
           </p>
         </div>
+
+        {/* Inactivity message */}
+        {reason === 'inactivity' && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-4 text-sm text-center flex items-center justify-center gap-2">
+            <Clock className="h-4 w-4" />
+            Votre session a expiré pour cause d&apos;inactivité. Veuillez vous reconnecter.
+          </div>
+        )}
 
         {/* Login form */}
         <div className="bg-card rounded-xl border border-border p-8 shadow-sm">
