@@ -15,6 +15,8 @@ import {
   CreditCard,
   Copy,
   ExternalLink,
+  Paperclip,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -122,6 +124,15 @@ Découvrez nos réalisations :
 L'équipe AureLuz Design`
   );
 
+  // Attachments state
+  const [attachments, setAttachments] = useState<File[]>([]);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   const handleDownloadPdf = async () => {
     setIsDownloading(true);
     setMessage(null);
@@ -160,6 +171,25 @@ L'équipe AureLuz Design`
     setMessage(null);
 
     try {
+      // Convert attachments to base64
+      const attachmentPromises = attachments.map(async (file) => {
+        return new Promise<{ filename: string; content: string; contentType: string }>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = (reader.result as string).split(',')[1];
+            resolve({
+              filename: file.name,
+              content: base64,
+              contentType: file.type || 'application/octet-stream',
+            });
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      });
+
+      const attachmentData = await Promise.all(attachmentPromises);
+
       const response = await fetch(`/api/quotes/${quote.id}/send`, {
         method: 'POST',
         headers: {
@@ -168,6 +198,7 @@ L'équipe AureLuz Design`
         body: JSON.stringify({
           subject: emailSubject,
           body: emailBody,
+          attachments: attachmentData,
         }),
       });
 
@@ -178,6 +209,7 @@ L'équipe AureLuz Design`
 
       setMessage({ type: 'success', text: 'Devis envoyé par email avec succès' });
       setShowEmailEditor(false);
+      setAttachments([]);
     } catch (error) {
       console.error('Error sending email:', error);
       setMessage({
@@ -501,9 +533,60 @@ L'équipe AureLuz Design`
                   />
                 </div>
 
+                {/* Pièces jointes - même pattern que mailing-form */}
+                <div className="space-y-3">
+                  <Label className="text-base font-medium">
+                    Pièces jointes supplémentaires {attachments.length > 0 && `(${attachments.length})`}
+                  </Label>
+
+                  {/* File list */}
+                  {attachments.length > 0 && (
+                    <div className="space-y-2">
+                      {attachments.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Paperclip className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="text-sm truncate">{file.name}</span>
+                            <span className="text-xs text-muted-foreground flex-shrink-0">
+                              ({formatFileSize(file.size)})
+                            </span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== index))}
+                            className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add file */}
+                  <input
+                    key={`file-input-${attachments.length}`}
+                    type="file"
+                    multiple
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      if (files && files.length > 0) {
+                        setAttachments((prev) => [...prev, ...Array.from(files)]);
+                      }
+                    }}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt"
+                    className="block w-full text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer cursor-pointer"
+                  />
+                </div>
+
                 {/* Note about PDF */}
                 <div className="text-sm text-muted-foreground bg-secondary/30 rounded-lg p-3">
-                  📎 Le PDF du devis sera automatiquement joint à l&apos;email.
+                  📎 Le PDF du devis sera automatiquement joint à l&apos;email{attachments.length > 0 ? ` (+ ${attachments.length} pièce${attachments.length > 1 ? 's' : ''} jointe${attachments.length > 1 ? 's' : ''})` : ''}.
                 </div>
               </div>
 

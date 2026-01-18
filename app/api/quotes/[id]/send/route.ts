@@ -417,11 +417,13 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Get custom subject, body, and attachments from request
     let customSubject: string | undefined;
     let customBody: string | undefined;
+    let additionalAttachments: Array<{ filename: string; content: string; contentType: string }> = [];
 
     try {
       const body = await request.json();
       customSubject = body.subject;
       customBody = body.body;
+      additionalAttachments = body.attachments || [];
     } catch {
       // No body provided, use defaults
     }
@@ -587,6 +589,16 @@ export async function POST(request: Request, { params }: RouteParams) {
         content: pdfBuffer,
       },
     ];
+
+    // Add additional attachments from client
+    for (const attachment of additionalAttachments) {
+      emailAttachments.push({
+        filename: attachment.filename,
+        content: Buffer.from(attachment.content, 'base64'),
+      });
+    }
+
+    console.log(`📧 Sending email with ${emailAttachments.length} attachments:`, emailAttachments.map(a => a.filename));
 
     // Send email with PDF attachment
     const { error } = await resend.emails.send({

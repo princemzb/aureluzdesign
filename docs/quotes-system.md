@@ -928,6 +928,30 @@ export async function getQuoteStats() {
 | Totaux incorrects | Calcul manuel | Toujours utiliser `calculateTotals` |
 | Items non sauvegardes | Format JSON invalide | Verifier la serialisation |
 | Erreur PDF "WinAnsi cannot encode" | Espaces insécables Unicode (U+202F) dans formatage devise FR | Utiliser `formatCurrencyForPdf()` qui remplace les espaces spéciaux |
+| Input file ne fonctionne qu'une fois dans un modal | React ne recrée pas l'input après sélection | Utiliser `key={file-input-${count}}` pour forcer React à recréer l'élément |
+
+### Note technique : Input file dans les modals
+
+Lors de l'ajout de pièces jointes dans un modal, l'input file peut ne fonctionner qu'une seule fois. Cela est dû au fait que React réutilise le même élément DOM après la mise à jour du state.
+
+**Solution :** Utiliser une clé dynamique basée sur le nombre de fichiers :
+
+```typescript
+<input
+  key={`file-input-${attachments.length}`}  // Force React à recréer l'input
+  type="file"
+  multiple
+  onChange={(e) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setAttachments((prev) => [...prev, ...Array.from(files)]);
+    }
+    // PAS BESOIN de e.target.value = '' avec cette approche
+  }}
+/>
+```
+
+Cette technique force React à détruire et recréer l'élément input à chaque ajout de fichier, garantissant un comportement cohérent.
 
 ### Notes techniques PDF
 
