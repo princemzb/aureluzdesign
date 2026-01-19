@@ -45,7 +45,7 @@ AureLuz Design est une application web complète pour une entreprise de décorat
 
 | Objectif | Description | Comment c'est atteint |
 |----------|-------------|----------------------|
-| **Performance** | Temps de chargement < 2s | Server Components, CDN Vercel, optimisation images |
+| **Performance** | Temps de chargement < 2s | Server Components, CDN Vercel, optimisation images, loading.tsx avec skeletons, middleware optimisé |
 | **SEO** | Référencement optimal | SSR, métadonnées dynamiques, sitemap.xml |
 | **Maintenabilité** | Code modulaire | Séparation services/actions/components |
 | **Sécurité** | Protection des données | RLS Supabase, validation Zod, middleware auth |
@@ -1362,6 +1362,55 @@ export const config = {
   matcher: ['/admin/:path*', '/login'],
 };
 ```
+
+**Optimisation importante** : Le middleware n'appelle `getUser()` que pour les routes `/admin/*` et `/login`. Les routes publiques passent directement sans appel API Supabase, améliorant significativement les performances.
+
+### 9.2.1 Loading States (Skeletons)
+
+Chaque page admin dispose d'un fichier `loading.tsx` qui affiche un skeleton pendant le chargement :
+
+```
+app/(admin)/admin/
+├── loading.tsx              # Skeleton générique admin
+├── analytics/loading.tsx    # Skeleton dashboard analytics
+├── appointments/loading.tsx # Skeleton liste RDV
+├── devis/loading.tsx        # Skeleton liste devis
+├── mailing/loading.tsx      # Skeleton campagnes email
+├── settings/loading.tsx     # Skeleton paramètres
+└── site/loading.tsx         # Skeleton gestion site
+```
+
+**Exemple de skeleton** :
+```tsx
+// app/(admin)/admin/devis/loading.tsx
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse bg-muted rounded ${className}`} />;
+}
+
+export default function DevisLoading() {
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-lg" />
+          <div>
+            <Skeleton className="h-8 w-24 mb-2" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+        </div>
+        <Skeleton className="h-10 w-32" />
+      </div>
+      {/* Liste skeleton... */}
+    </div>
+  );
+}
+```
+
+**Avantages** :
+- Feedback visuel immédiat pendant le chargement des données
+- Amélioration perçue de la performance (UX)
+- Structure cohérente avec la page finale
 
 ### 9.3 Server Action de Connexion
 
