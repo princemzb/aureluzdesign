@@ -35,10 +35,9 @@ export default async function MailingPage() {
                   <Send className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="font-medium text-foreground">Campagne Salon du Mariage</h2>
+                  <h2 className="font-medium text-foreground">Envoi d'emails</h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Ajoutez les contacts rencontrés lors du salon et envoyez-leur un email
-                    personnalisé avec un lien direct vers la page de prise de rendez-vous.
+                    Ajoutez vos contacts et envoyez-leur un email personnalisé.
                   </p>
                 </div>
               </div>
@@ -61,7 +60,7 @@ export default async function MailingPage() {
                 <div>
                   <h2 className="font-medium text-foreground">Personnaliser le template</h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Modifiez le contenu de l&apos;email envoyé aux contacts du Salon du Mariage.
+                    Modifiez le contenu de l&apos;email envoyé à vos contacts.
                   </p>
                 </div>
               </div>

@@ -330,27 +330,20 @@ export function MailingForm() {
             </div>
           )}
 
-          {/* Add file button */}
-          <div>
-            <input
-              type="file"
-              id="mailing-attachment-input"
-              multiple
-              className="hidden"
-              onChange={handleFileSelect}
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => document.getElementById('mailing-attachment-input')?.click()}
-              className="gap-2"
-            >
-              <Paperclip className="h-4 w-4" />
-              Ajouter une pièce jointe
-            </Button>
-          </div>
+          {/* Add file button - key dynamique pour forcer React à recréer l'input */}
+          <input
+            key={`mailing-file-input-${attachments.length}`}
+            type="file"
+            multiple
+            onChange={(e) => {
+              const files = e.target.files;
+              if (files && files.length > 0) {
+                setAttachments((prev) => [...prev, ...Array.from(files)]);
+              }
+            }}
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt"
+            className="block w-full text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer cursor-pointer"
+          />
         </div>
 
         {/* Aperçu */}
@@ -372,7 +365,7 @@ export function MailingForm() {
             </Button>
           </div>
           <p className="text-sm">
-            <strong>Objet :</strong> Suite à notre rencontre au Salon du Mariage - AureLuz
+            <strong>Objet :</strong> Défini dans le template
           </p>
           <p className="text-sm mt-1 text-muted-foreground">
             Les emails Gmail reçoivent une version simplifiée pour éviter les promotions.

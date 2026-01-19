@@ -491,7 +491,6 @@ function getSalonEmailTemplateDesign(
 
           <div class="footer">
             <p>© ${new Date().getFullYear()} AureLuz Design. Tous droits réservés.</p>
-            <p>Cet email vous a été envoyé suite à notre rencontre au Salon du Mariage.</p>
           </div>
         </div>
       </div>
@@ -544,8 +543,8 @@ function getSalonEmailTemplateSimple(
 const DEFAULT_TEMPLATE_CONTENT: EmailTemplateContent = {
   greeting: 'Bonjour {name},',
   paragraphs: [
-    "C'était un réel plaisir de vous rencontrer lors du Salon du Mariage !",
-    "J'espère que cette journée vous a inspiré pour votre futur événement. Comme promis, je reviens vers vous pour vous accompagner dans la création d'une décoration unique et à votre image.",
+    "J'espère que vous allez bien !",
+    "Je me permets de vous contacter pour vous accompagner dans la création d'une décoration unique et à votre image pour votre prochain événement.",
     "Je serais ravie d'échanger avec vous sur votre projet et de vous présenter mes différentes prestations lors d'un rendez-vous personnalisé.",
   ],
   ctaText: 'Prendre rendez-vous',
@@ -585,7 +584,7 @@ export async function sendSalonCampaignEmail(
     getEmailSettings(),
   ]);
   const content = template?.content || DEFAULT_TEMPLATE_CONTENT;
-  const subject = template?.subject || 'Suite à notre rencontre au Salon du Mariage - AureLuz';
+  const subject = template?.subject || 'AureLuz Design - Décoration sur mesure';
   const instagramUrl = emailSettings.instagram || DEFAULT_INSTAGRAM;
 
   // Choisir le template selon le type d'email
