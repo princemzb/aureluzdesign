@@ -48,16 +48,23 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
+  // Optimisation : n'appeler getUser() que pour les routes qui en ont besoin
+  const pathname = request.nextUrl.pathname;
+  const isAdminRoute = pathname.startsWith('/admin');
+  const isLoginRoute = pathname === '/login';
 
+  // Pour les routes publiques, pas besoin de vérifier l'auth
+  if (!isAdminRoute && !isLoginRoute) {
+    return supabaseResponse;
+  }
+
+  // IMPORTANT: getUser() fait un appel API - ne l'appeler que si nécessaire
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   // Protect admin routes
-  if (request.nextUrl.pathname.startsWith('/admin')) {
+  if (isAdminRoute) {
     if (!user) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
@@ -102,12 +109,10 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Redirect to admin if already logged in and trying to access login
-  if (request.nextUrl.pathname === '/login') {
-    if (user) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/admin';
-      return NextResponse.redirect(url);
-    }
+  if (isLoginRoute && user) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/admin';
+    return NextResponse.redirect(url);
   }
 
   return supabaseResponse;

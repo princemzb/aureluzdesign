@@ -17,14 +17,6 @@ export function MailingForm() {
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      setAttachments((prev) => [...prev, ...Array.from(files)]);
-    }
-    e.target.value = '';
-  };
-
   const removeAttachment = (index: number) => {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
