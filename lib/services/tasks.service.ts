@@ -288,7 +288,8 @@ export class TasksService {
     }
 
     return (data || []).map(task => {
-      const client = task.client as { name: string } | null;
+      // Supabase retourne un objet pour les jointures one-to-one, mais TypeScript infère un tableau
+      const client = task.client as unknown as { name: string } | null;
       return {
         id: task.id,
         name: task.name,
