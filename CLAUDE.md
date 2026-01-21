@@ -11,6 +11,16 @@
 
 Ne JAMAIS commencer à coder sans validation explicite du plan.
 
+## Correction de bugs et erreurs
+
+**OBLIGATOIRE** : Avant de corriger une erreur (build, TypeScript, runtime, etc.) :
+
+1. **Expliquer le problème** : Quelle est l'erreur exacte et sa cause profonde
+2. **Expliquer la solution** : Comment la correction résout le problème
+3. **Ensuite seulement** : Implémenter la correction
+
+Ne JAMAIS corriger silencieusement sans expliquer.
+
 ## Commits Git
 
 - Ne JAMAIS ajouter de ligne "Co-Authored-By" dans les messages de commit

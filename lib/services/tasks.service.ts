@@ -287,15 +287,18 @@ export class TasksService {
       return [];
     }
 
-    return (data || []).map(task => ({
-      id: task.id,
-      name: task.name,
-      due_date: task.due_date!,
-      status: task.status,
-      priority: task.priority,
-      client_id: task.client_id,
-      client_name: (task.client as { name: string })?.name || '',
-    }));
+    return (data || []).map(task => {
+      const client = task.client as { name: string } | null;
+      return {
+        id: task.id,
+        name: task.name,
+        due_date: task.due_date!,
+        status: task.status,
+        priority: task.priority,
+        client_id: task.client_id,
+        client_name: client?.name || '',
+      };
+    });
   }
 
   /**
