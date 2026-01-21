@@ -115,7 +115,7 @@ export function SitePreviewContent() {
           >
             <iframe
               key={iframeKey}
-              src="/admin/preview"
+              src="/"
               className="w-full h-[65vh] border-0"
               title="Aperçu du site"
             />
