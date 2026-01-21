@@ -22,8 +22,9 @@ import {
 } from '@/components/ui/select';
 import { createQuote, updateQuote } from '@/lib/actions/quotes.actions';
 import { QuotePreview } from './quote-preview';
+import { ClientSelector } from './client-selector';
 import { EVENT_TYPES } from '@/lib/utils/constants';
-import type { Quote, PaymentScheduleItem } from '@/lib/types';
+import type { Quote, PaymentScheduleItem, Client } from '@/lib/types';
 
 interface QuoteFormProps {
   quote?: Quote;
@@ -44,9 +45,25 @@ export function QuoteForm({ quote, mode }: QuoteFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   // Form state
+  const [clientId, setClientId] = useState<string | null>(quote?.client_id || null);
   const [clientName, setClientName] = useState(quote?.client_name || '');
   const [clientEmail, setClientEmail] = useState(quote?.client_email || '');
   const [clientPhone, setClientPhone] = useState(quote?.client_phone || '');
+
+  // Handle client selection
+  const handleClientSelect = (client: Client | null) => {
+    if (client) {
+      setClientId(client.id);
+      setClientName(client.name);
+      setClientEmail(client.email);
+      setClientPhone(client.phone || '');
+    } else {
+      setClientId(null);
+      setClientName('');
+      setClientEmail('');
+      setClientPhone('');
+    }
+  };
   const [eventDate, setEventDate] = useState(quote?.event_date || '');
   const [eventType, setEventType] = useState(quote?.event_type || '');
   const [vatRate, setVatRate] = useState(quote?.vat_rate || 20);
@@ -148,6 +165,12 @@ export function QuoteForm({ quote, mode }: QuoteFormProps) {
     e.preventDefault();
     setError(null);
 
+    // En mode création, un client doit être sélectionné
+    if (mode === 'create' && !clientId) {
+      setError('Veuillez sélectionner un client.');
+      return;
+    }
+
     if (!clientName || !clientEmail || items.some((i) => !i.description)) {
       setError('Veuillez remplir tous les champs obligatoires.');
       return;
@@ -161,6 +184,7 @@ export function QuoteForm({ quote, mode }: QuoteFormProps) {
     setIsSaving(true);
 
     const input = {
+      client_id: clientId!,
       client_name: clientName,
       client_email: clientEmail,
       client_phone: clientPhone || undefined,
@@ -195,6 +219,7 @@ export function QuoteForm({ quote, mode }: QuoteFormProps) {
   const quoteData: Quote = {
     id: quote?.id || 'preview',
     quote_number: quote?.quote_number || 'XXXX-XXXX',
+    client_id: clientId || quote?.client_id || '',
     client_name: clientName,
     client_email: clientEmail,
     client_phone: clientPhone,
@@ -232,51 +257,36 @@ export function QuoteForm({ quote, mode }: QuoteFormProps) {
       {/* Formulaire */}
       <div className="space-y-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Informations client */}
+          {/* Sélection du client */}
           <div className="bg-background rounded-xl border border-border p-6 space-y-4">
-            <h2 className="font-medium text-lg">Informations client</h2>
+            <h2 className="font-medium text-lg">Client *</h2>
+            <ClientSelector
+              selectedClientId={clientId}
+              onSelect={handleClientSelect}
+              disabled={mode === 'edit'}
+            />
+            {mode === 'edit' && (
+              <p className="text-xs text-muted-foreground">
+                Le client ne peut pas être modifié sur un devis existant.
+              </p>
+            )}
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="clientName">Nom *</Label>
-                <Input
-                  id="clientName"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  placeholder="Prénom Nom"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="clientEmail">Email *</Label>
-                <Input
-                  id="clientEmail"
-                  type="email"
-                  value={clientEmail}
-                  onChange={(e) => setClientEmail(e.target.value)}
-                  placeholder="email@exemple.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="clientPhone">Téléphone</Label>
-                <Input
-                  id="clientPhone"
-                  type="tel"
-                  value={clientPhone}
-                  onChange={(e) => setClientPhone(e.target.value)}
-                  placeholder="06 12 34 56 78"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="eventDate">Date de l&apos;événement</Label>
-                <Input
-                  id="eventDate"
-                  type="date"
-                  value={eventDate}
-                  onChange={(e) => setEventDate(e.target.value)}
-                />
-              </div>
+          {/* Informations client (affichées après sélection) */}
+          {clientId && (
+            <div className="bg-background rounded-xl border border-border p-6 space-y-4">
+              <h2 className="font-medium text-lg">Détails du devis</h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="eventDate">Date de l&apos;événement</Label>
+                  <Input
+                    id="eventDate"
+                    type="date"
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
+                  />
+                </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="eventType">Type d&apos;événement</Label>
                 <Select value={eventType} onValueChange={setEventType}>
@@ -294,8 +304,11 @@ export function QuoteForm({ quote, mode }: QuoteFormProps) {
               </div>
             </div>
           </div>
+          )}
 
-          {/* Lignes du devis */}
+          {/* Lignes du devis - seulement si client sélectionné */}
+          {clientId && (
+          <>
           <div className="bg-background rounded-xl border border-border p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-medium text-lg">Prestations</h2>
@@ -580,6 +593,8 @@ export function QuoteForm({ quote, mode }: QuoteFormProps) {
               </div>
             </div>
           </div>
+          </>
+          )}
 
           {/* Erreur */}
           {error && (

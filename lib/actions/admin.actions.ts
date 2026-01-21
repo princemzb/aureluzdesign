@@ -38,6 +38,24 @@ export async function getAppointments(filters?: {
   return data || [];
 }
 
+export async function getAppointmentsByClientEmail(email: string): Promise<Appointment[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('client_email', email)
+    .order('date', { ascending: true })
+    .order('start_time', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching appointments by email:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
 export async function getAppointmentById(id: string): Promise<Appointment | null> {
   const supabase = await createClient();
 

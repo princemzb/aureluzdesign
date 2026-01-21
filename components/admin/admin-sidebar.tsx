@@ -12,9 +12,9 @@ import {
   X,
   BarChart3,
   Mail,
-  FileText,
   Globe,
   Eye,
+  Users,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils/cn';
@@ -26,7 +26,7 @@ const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Analytiques', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Rendez-vous', href: '/admin/appointments', icon: Calendar },
-  { name: 'Devis', href: '/admin/devis', icon: FileText },
+  { name: 'Clients', href: '/admin/clients', icon: Users },
   { name: 'Gestion site', href: '/admin/site', icon: Globe },
   { name: 'Aperçu site', href: '/admin/preview', icon: Eye },
   { name: 'Mailing', href: '/admin/mailing', icon: Mail },

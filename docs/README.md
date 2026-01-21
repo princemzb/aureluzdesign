@@ -28,6 +28,7 @@ Chaque fichier documente une feature complete avec :
 | Reservation | [booking-system.md](./booking-system.md) | Prise de RDV avec calendrier et creneaux |
 | Temoignages | [testimonials-system.md](./testimonials-system.md) | Avis clients avec moderation |
 | Devis & Paiement | [quotes-system.md](./quotes-system.md) | Devis avec paiement Stripe en ligne |
+| Clients & Tâches | [clients-system.md](./clients-system.md) | Gestion clients, tâches et agenda |
 | Mailing | [mailing-system.md](./mailing-system.md) | Emails transactionnels et campagnes |
 | Galerie | [gallery-system.md](./gallery-system.md) | Portfolio photos avec upload et ordre |
 | Config | [services-settings-system.md](./services-settings-system.md) | Services et parametres du site |

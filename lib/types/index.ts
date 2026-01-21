@@ -306,6 +306,103 @@ export interface RecentActivity {
 }
 
 // ============================================
+// Types Clients
+// ============================================
+
+export interface Client {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  address: string | null;
+  company: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateClientInput {
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  company?: string;
+  notes?: string;
+}
+
+export interface UpdateClientInput {
+  name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  company?: string;
+  notes?: string;
+}
+
+export interface ClientWithStats extends Client {
+  quotes_count: number;
+  tasks_count: number;
+  total_amount: number;
+  pending_tasks: number;
+}
+
+// ============================================
+// Types Tâches (Tasks)
+// ============================================
+
+export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+export type TaskPriority = 'urgent' | 'high' | 'normal' | 'low';
+
+export interface TaskAttachment {
+  id: string;
+  filename: string;
+  url: string;
+  size: number;
+  content_type: string;
+  uploaded_at: string;
+}
+
+export interface Task {
+  id: string;
+  client_id: string;
+  name: string;
+  location: string | null;
+  due_date: string | null;
+  description: string | null;
+  status: TaskStatus;
+  priority: TaskPriority;
+  attachments: TaskAttachment[];
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+}
+
+export interface CreateTaskInput {
+  client_id: string;
+  name: string;
+  location?: string;
+  due_date?: string;
+  description?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  attachments?: TaskAttachment[];
+}
+
+export interface UpdateTaskInput {
+  name?: string;
+  location?: string;
+  due_date?: string;
+  description?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  attachments?: TaskAttachment[];
+}
+
+export interface TaskWithClient extends Task {
+  client: Client;
+}
+
+// ============================================
 // Types Devis (Quotes)
 // ============================================
 
@@ -329,6 +426,8 @@ export interface QuoteItem {
 export interface Quote {
   id: string;
   quote_number: string;
+  client_id: string;
+  // Informations client (copie au moment de la création pour l'historique)
   client_name: string;
   client_email: string;
   client_phone: string | null;
@@ -366,6 +465,8 @@ export interface PaymentScheduleItem {
 }
 
 export interface CreateQuoteInput {
+  client_id: string;
+  // Informations client (copiées depuis le client sélectionné)
   client_name: string;
   client_email: string;
   client_phone?: string;
@@ -378,6 +479,10 @@ export interface CreateQuoteInput {
   deposit_percent?: number;
   // Échéancier de paiement personnalisé
   payment_schedule?: PaymentScheduleItem[];
+}
+
+export interface QuoteWithClient extends Quote {
+  client: Client;
 }
 
 export interface UpdateQuoteInput extends Partial<CreateQuoteInput> {

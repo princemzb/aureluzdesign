@@ -65,6 +65,23 @@ export class QuotesService {
     return data;
   }
 
+  static async getByClientId(clientId: string): Promise<Quote[]> {
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+      .from('quotes')
+      .select('*')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching client quotes:', error);
+      return [];
+    }
+
+    return data || [];
+  }
+
   static async create(input: CreateQuoteInput): Promise<Quote> {
     const supabase = createAdminClient();
 
@@ -82,6 +99,7 @@ export class QuotesService {
     const { data, error } = await supabase
       .from('quotes')
       .insert({
+        client_id: input.client_id,
         client_name: input.client_name,
         client_email: input.client_email,
         client_phone: input.client_phone || null,
