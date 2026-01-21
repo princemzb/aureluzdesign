@@ -237,6 +237,51 @@ Les stats sont calculées dans `ClientsService.getClientStats()` :
 - `total_amount` : CA total (somme des devis)
 - `pending_tasks` : Tâches en attente
 
+### Suppression d'un client
+
+La suppression d'un client entraîne la suppression en cascade de toutes ses données :
+
+```
+Client supprimé
+  ├── Tâches (CASCADE automatique via FK)
+  ├── Devis (CASCADE automatique via FK)
+  │     └── Factures (CASCADE automatique via FK quote_id)
+  └── RDV (suppression manuelle par email dans le service)
+```
+
+**Fichiers impliqués :**
+- `lib/services/clients.service.ts` : Méthode `delete()` qui supprime les RDV puis le client
+- `components/admin/delete-client-button.tsx` : Bouton avec modal de confirmation
+- `supabase/migrations/020_client_cascade_delete.sql` : FK quotes → clients avec CASCADE
+
+**Code de suppression :**
+
+```typescript
+// lib/services/clients.service.ts
+static async delete(id: string): Promise<void> {
+  const supabase = createAdminClient();
+
+  // 1. Récupérer l'email du client
+  const { data: client } = await supabase
+    .from('clients')
+    .select('email')
+    .eq('id', id)
+    .single();
+
+  // 2. Supprimer les RDV liés à cet email
+  await supabase
+    .from('appointments')
+    .delete()
+    .eq('client_email', client.email);
+
+  // 3. Supprimer le client (CASCADE: tâches, devis, factures)
+  await supabase
+    .from('clients')
+    .delete()
+    .eq('id', id);
+}
+```
+
 ## Maintenance
 
 ### Vérifier les clients orphelins

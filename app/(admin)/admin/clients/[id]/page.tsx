@@ -6,6 +6,7 @@ import { getClient } from '@/lib/actions/clients.actions';
 import { getClientTasks } from '@/lib/actions/tasks.actions';
 import { getAppointmentsByClientEmail } from '@/lib/actions/admin.actions';
 import { ClientDetailTabs } from '@/components/admin/client-detail-tabs';
+import { DeleteClientButton } from '@/components/admin/delete-client-button';
 import { QuotesService } from '@/lib/services/quotes.service';
 import { ClientsService } from '@/lib/services/clients.service';
 
@@ -59,12 +60,15 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
             </div>
           </div>
         </div>
-        <Link href={`/admin/clients/${id}/modifier`}>
-          <Button variant="outline" className="gap-2">
-            <Edit className="h-4 w-4" />
-            Modifier
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href={`/admin/clients/${id}/modifier`}>
+            <Button variant="outline" className="gap-2">
+              <Edit className="h-4 w-4" />
+              Modifier
+            </Button>
+          </Link>
+          <DeleteClientButton clientId={id} clientName={client.name} />
+        </div>
       </div>
 
       {/* Informations client */}

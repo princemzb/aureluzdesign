@@ -221,22 +221,36 @@ export class ClientsService {
   }
 
   /**
-   * Supprime un client (uniquement si pas de devis associés)
+   * Supprime un client et toutes ses données associées
+   * - Les tâches, devis et factures sont supprimés en CASCADE
+   * - Les RDV doivent être supprimés manuellement (liés par email)
    */
   static async delete(id: string): Promise<void> {
     const supabase = createAdminClient();
 
-    // Vérifier s'il y a des devis associés
-    const { data: quotes } = await supabase
-      .from('quotes')
-      .select('id')
-      .eq('client_id', id)
-      .limit(1);
+    // Récupérer l'email du client pour supprimer les RDV
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select('email')
+      .eq('id', id)
+      .single();
 
-    if (quotes && quotes.length > 0) {
-      throw new Error('Impossible de supprimer ce client car il a des devis associés');
+    if (clientError || !client) {
+      throw new Error('Client non trouvé');
     }
 
+    // Supprimer les RDV liés à cet email
+    const { error: appointmentsError } = await supabase
+      .from('appointments')
+      .delete()
+      .eq('client_email', client.email);
+
+    if (appointmentsError) {
+      console.error('Error deleting client appointments:', appointmentsError);
+      // On continue quand même pour supprimer le client
+    }
+
+    // Supprimer le client (CASCADE supprimera: tâches, devis, factures)
     const { error } = await supabase
       .from('clients')
       .delete()
