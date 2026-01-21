@@ -1,15 +1,22 @@
-# Système de Gestion des Clients
+# Système de Gestion des Clients (Workspace)
 
 ## Vue d'ensemble
 
-L'espace client est un hub centralisé permettant de gérer les clients et de regrouper toutes les actions relatives à chaque client : devis, tâches, agenda et factures.
+Le **Workspace** est un hub centralisé permettant de gérer les clients et de regrouper toutes les actions relatives à chaque client : devis, tâches, agenda et factures.
+
+**Fonctionnalités clés :**
+- Création automatique des clients lors d'une prise de RDV
+- Agenda global affichant tous les RDV + tâches de tous les clients
+- Fiche client détaillée avec onglets (Devis, Tâches, Agenda, Factures)
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         ESPACE CLIENT                                        │
+│                              WORKSPACE                                       │
 ├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   Sidebar : "Workspace" → /admin/clients                                    │
 │                                                                              │
 │   /admin/clients                    Liste paginée des clients (10/page)     │
 │        │                                                                     │
@@ -21,7 +28,37 @@ L'espace client est un hub centralisé permettant de gérer les clients et de re
 │             │                                                                │
 │             └── /modifier            Édition des infos client               │
 │                                                                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                            AGENDA GLOBAL                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   Sidebar : "Agenda" → /admin/appointments                                  │
+│                                                                              │
+│   Vue calendrier par défaut affichant :                                     │
+│   - Tous les RDV (jaune=attente, vert=confirmé, rouge=annulé)              │
+│   - Toutes les tâches (couleur selon priorité : rouge/orange/bleu/gris)    │
+│                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Création automatique des clients
+
+Quand un visiteur prend un RDV via le formulaire public, le système :
+1. Crée le RDV
+2. Vérifie si un client avec cet email existe
+3. Si non → crée automatiquement le client (nom, email, téléphone)
+4. Le RDV apparaît dans l'agenda du client
+
+```typescript
+// lib/actions/booking.actions.ts
+const existingClient = await ClientsService.getByEmail(validatedData.client_email);
+if (!existingClient) {
+  await ClientsService.create({
+    name: validatedData.client_name,
+    email: validatedData.client_email,
+    phone: validatedData.client_phone,
+  });
+}
 ```
 
 ## Base de données
