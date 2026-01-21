@@ -412,12 +412,14 @@ export function AppointmentsManager({
                 const isToday = isSameDay(day, new Date());
                 const totalItems = dayAppointments.length + dayTasks.length;
                 const maxDisplay = 3;
+                const dateStr = format(day, 'yyyy-MM-dd');
 
                 return (
                   <div
                     key={day.toISOString()}
+                    onClick={() => router.push(`/admin/agenda/${dateStr}`)}
                     className={cn(
-                      'min-h-[100px] border border-border rounded-lg p-2',
+                      'min-h-[100px] border border-border rounded-lg p-2 cursor-pointer hover:border-primary/50 transition-colors',
                       isToday && 'bg-primary/5 border-primary'
                     )}
                   >
@@ -434,7 +436,10 @@ export function AppointmentsManager({
                       {dayAppointments.slice(0, maxDisplay).map((appointment) => (
                         <button
                           key={`apt-${appointment.id}`}
-                          onClick={() => handleRowClick(appointment.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRowClick(appointment.id);
+                          }}
                           className={cn(
                             'w-full text-left text-xs p-1 rounded truncate',
                             appointment.status === 'pending' && 'bg-yellow-100 text-yellow-800',
