@@ -6,7 +6,7 @@ import type { AppointmentStatus } from '@/lib/types';
 export default async function AppointmentsPage() {
   const [appointments, tasksResult] = await Promise.all([
     getAppointments(),
-    getTasks({ limit: 1000 }), // Récupérer toutes les tâches pour le calendrier
+    getTasks({ pageSize: 1000 }), // Récupérer toutes les tâches pour le calendrier
   ]);
   const tasks = tasksResult.tasks;
 
