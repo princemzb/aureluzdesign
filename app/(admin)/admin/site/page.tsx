@@ -10,6 +10,7 @@ import { GalleryManager } from '@/components/admin/gallery-manager';
 import { TestimonialsManager } from '@/components/admin/testimonials-manager';
 import { LogoManager } from '@/components/admin/logo-manager';
 import { BusinessHoursManager } from '@/components/admin/business-hours-manager';
+import { SitePreviewContent } from '@/components/admin/site-preview-content';
 import { BUSINESS_CONFIG } from '@/lib/utils/constants';
 import { SiteManagementTabs } from '@/components/admin/site-management-tabs';
 
@@ -52,6 +53,7 @@ export default async function SiteManagementPage() {
           testimonialsContent={<TestimonialsManager testimonials={testimonials} />}
           logoContent={<LogoManager currentLogo={logoUrl} />}
           hoursContent={<BusinessHoursManager businessHours={businessHours} />}
+          previewContent={<SitePreviewContent />}
           counts={{
             services: services.length,
             photos: photos.length,

@@ -19,7 +19,12 @@
       "Bash(docker exec:*)",
       "Bash(docker ps:*)",
       "Bash(pip3 install:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(git merge:*)",
+      "Bash(git push:*)",
+      "Bash(pnpm dev:*)"
     ]
   }
 }

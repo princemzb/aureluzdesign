@@ -13,7 +13,6 @@ import {
   BarChart3,
   Mail,
   Globe,
-  Eye,
   Users,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -28,7 +27,6 @@ const navigation = [
   { name: 'Agenda', href: '/admin/appointments', icon: Calendar },
   { name: 'Workspace', href: '/admin/clients', icon: Users },
   { name: 'Gestion site', href: '/admin/site', icon: Globe },
-  { name: 'Aperçu site', href: '/admin/preview', icon: Eye },
   { name: 'Mailing', href: '/admin/mailing', icon: Mail },
   { name: 'Paramètres', href: '/admin/settings', icon: Settings },
 ];

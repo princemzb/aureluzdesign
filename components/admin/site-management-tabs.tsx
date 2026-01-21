@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, ReactNode } from 'react';
-import { Sparkles, Image, MessageSquare, ImageIcon, Clock } from 'lucide-react';
+import { Sparkles, Image, MessageSquare, ImageIcon, Clock, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 interface SiteManagementTabsProps {
@@ -10,6 +10,7 @@ interface SiteManagementTabsProps {
   testimonialsContent: ReactNode;
   logoContent: ReactNode;
   hoursContent: ReactNode;
+  previewContent: ReactNode;
   counts: {
     services: number;
     photos: number;
@@ -23,6 +24,7 @@ const TABS = [
   { id: 'testimonials', label: 'Témoignages', icon: MessageSquare },
   { id: 'logo', label: 'Logo', icon: ImageIcon },
   { id: 'hours', label: 'Horaires', icon: Clock },
+  { id: 'preview', label: 'Aperçu', icon: Eye },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
@@ -33,6 +35,7 @@ export function SiteManagementTabs({
   testimonialsContent,
   logoContent,
   hoursContent,
+  previewContent,
   counts,
 }: SiteManagementTabsProps) {
   const [activeTab, setActiveTab] = useState<TabId>('services');
@@ -62,6 +65,8 @@ export function SiteManagementTabs({
         return logoContent;
       case 'hours':
         return hoursContent;
+      case 'preview':
+        return previewContent;
     }
   };
 

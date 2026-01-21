@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Cahier de Tests - AureLuz Design</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+            color: #333;
+        }
+        h1 {
+            color: #c9a227;
+            border-bottom: 3px solid #c9a227;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            margin-top: 40px;
+        }
+        h3 {
+            color: #555;
+            margin-top: 30px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', monospace;
+        }
+        .test-box {
+            background-color: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-left: 4px solid #c9a227;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .test-box h4 {
+            margin-top: 0;
+            color: #c9a227;
+        }
+        ul.checklist {
+            list-style: none;
+            padding-left: 0;
+        }
+        ul.checklist li {
+            padding: 5px 0;
+        }
+        ul.checklist li:before {
+            content: "☐ ";
+            margin-right: 5px;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        .header-info {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Cahier de Tests - AureLuz Design</h1>
+
+<div class="header-info">
+    <p><strong>Version :</strong> 1.0</p>
+    <p><strong>Date :</strong> Janvier 2026</p>
+    <p><strong>Environnement de test :</strong> https://www.aureluzdesign.fr</p>
+    <p><strong>Admin :</strong> https://www.aureluzdesign.fr/admin</p>
+</div>
+
+<h2>Table des matieres</h2>
+<ol>
+    <li>Informations generales</li>
+    <li>Systeme de reservation</li>
+    <li>Ouvertures exceptionnelles</li>
+    <li>Systeme de devis</li>
+    <li>Paiement en ligne (Stripe)</li>
+    <li>Gestion des factures</li>
+    <li>Galerie photos</li>
+    <li>Temoignages</li>
+    <li>Analytics</li>
+    <li>Parametres du site</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h2>1. Informations generales</h2>
+
+<h3>1.1 Acces de test</h3>
+<table>
+    <tr><th>Environnement</th><th>URL</th><th>Identifiants</th></tr>
+    <tr><td>Site public</td><td>https://www.aureluzdesign.fr</td><td>N/A</td></tr>
+    <tr><td>Admin</td><td>https://www.aureluzdesign.fr/admin</td><td>Fournis separement</td></tr>
+    <tr><td>Stripe (test)</td><td>Dashboard Stripe</td><td>Mode test active</td></tr>
+</table>
+
+<h3>1.2 Donnees de test Stripe</h3>
+<p>Pour les paiements en mode test, utiliser :</p>
+<table>
+    <tr><th>Champ</th><th>Valeur</th></tr>
+    <tr><td>Numero de carte</td><td><code>4242 4242 4242 4242</code></td></tr>
+    <tr><td>Date d'expiration</td><td>Toute date future (ex: 12/30)</td></tr>
+    <tr><td>CVC</td><td><code>123</code></td></tr>
+    <tr><td>Code postal</td><td><code>75001</code></td></tr>
+</table>
+
+<h3>1.3 Legende des statuts de test</h3>
+<table>
+    <tr><th>Statut</th><th>Signification</th></tr>
+    <tr><td>✅ PASS</td><td>Test reussi</td></tr>
+    <tr><td>❌ FAIL</td><td>Test echoue</td></tr>
+    <tr><td>⚠️ PARTIAL</td><td>Partiellement reussi</td></tr>
+    <tr><td>⏭️ SKIP</td><td>Test ignore</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2>2. Systeme de reservation</h2>
+
+<div class="test-box">
+    <h4>TEST-RES-001 : Affichage du calendrier</h4>
+    <p><strong>Objectif :</strong> Verifier que le calendrier de reservation s'affiche correctement</p>
+    <p><strong>Prerequis :</strong> Aucun</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Acceder a https://www.aureluzdesign.fr/booking</li>
+        <li>Observer le calendrier affiche</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>Le calendrier s'affiche avec le mois courant</li>
+        <li>Les jours passes sont grises et non cliquables</li>
+        <li>Les weekends (samedi/dimanche) sont grises par defaut</li>
+        <li>Les boutons de navigation mois precedent/suivant fonctionnent</li>
+        <li>La legende est visible en bas du calendrier</li>
+    </ul>
+</div>
+
+<div class="test-box">
+    <h4>TEST-RES-002 : Selection d'une date</h4>
+    <p><strong>Objectif :</strong> Verifier la selection d'une date disponible</p>
+    <p><strong>Prerequis :</strong> TEST-RES-001 reussi</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Cliquer sur une date disponible (jour de semaine, non grise)</li>
+        <li>Observer le changement d'etape</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>La date selectionnee est mise en surbrillance (couleur primaire)</li>
+        <li>L'etape passe automatiquement a "Choix du creneau"</li>
+        <li>L'indicateur d'etape (1-2-3) se met a jour</li>
+        <li>Les creneaux horaires s'affichent</li>
+    </ul>
+    <p><strong>Jeu de donnees :</strong> Premier lundi disponible dans le calendrier</p>
+</div>
+
+<div class="test-box">
+    <h4>TEST-RES-003 : Affichage des creneaux horaires</h4>
+    <p><strong>Objectif :</strong> Verifier l'affichage correct des creneaux disponibles</p>
+    <p><strong>Prerequis :</strong> TEST-RES-002 reussi</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Apres selection d'une date, observer les creneaux affiches</li>
+        <li>Verifier les informations affichees</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>La date selectionnee est affichee en haut (format : "Lundi 20 janvier")</li>
+        <li>Les creneaux de 9h a 17h sont affiches (horaires par defaut)</li>
+        <li>Le nombre de creneaux disponibles est indique</li>
+        <li>Les creneaux deja reserves sont grises</li>
+        <li>La duree "1 heure" est mentionnee</li>
+    </ul>
+</div>
+
+<div class="test-box">
+    <h4>TEST-RES-004 : Selection d'un creneau</h4>
+    <p><strong>Objectif :</strong> Verifier la selection d'un creneau horaire</p>
+    <p><strong>Prerequis :</strong> TEST-RES-003 reussi</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Cliquer sur un creneau disponible (non grise)</li>
+        <li>Observer le changement d'etape</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>Le creneau selectionne est mis en surbrillance</li>
+        <li>L'etape passe a "Vos informations"</li>
+        <li>Le formulaire de contact s'affiche</li>
+        <li>Le bouton "Retour" est visible</li>
+    </ul>
+    <p><strong>Jeu de donnees :</strong> Creneau de test : <code>10:00</code></p>
+</div>
+
+<div class="test-box">
+    <h4>TEST-RES-005 : Remplissage du formulaire de reservation</h4>
+    <p><strong>Objectif :</strong> Verifier le formulaire de reservation</p>
+    <p><strong>Prerequis :</strong> TEST-RES-004 reussi</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Remplir tous les champs du formulaire</li>
+        <li>Selectionner un type d'evenement</li>
+        <li>Cliquer sur "Confirmer la reservation"</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>Tous les champs obligatoires sont marques</li>
+        <li>La validation du telephone fonctionne (format francais)</li>
+        <li>La validation de l'email fonctionne</li>
+        <li>Le type d'evenement est selectionnable (Signature, Instants, Coaching)</li>
+        <li>Le champ message est optionnel</li>
+        <li>La soumission affiche un loader</li>
+        <li>La page de confirmation s'affiche apres soumission</li>
+    </ul>
+    <p><strong>Jeu de donnees :</strong></p>
+    <table>
+        <tr><th>Champ</th><th>Valeur</th></tr>
+        <tr><td>Nom</td><td><code>Jean Dupont</code></td></tr>
+        <tr><td>Email</td><td><code>test.aureluz@yopmail.com</code></td></tr>
+        <tr><td>Telephone</td><td><code>06 12 34 56 78</code></td></tr>
+        <tr><td>Type</td><td><code>Signature</code></td></tr>
+        <tr><td>Message</td><td><code>Ceci est un test de reservation</code></td></tr>
+    </table>
+</div>
+
+<div class="page-break"></div>
+
+<h2>3. Ouvertures exceptionnelles</h2>
+
+<div class="test-box">
+    <h4>TEST-OPEN-001 : Creation d'une ouverture exceptionnelle</h4>
+    <p><strong>Objectif :</strong> Verifier la creation d'un creneau exceptionnel (weekend)</p>
+    <p><strong>Prerequis :</strong> Acces admin</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Se connecter a l'admin</li>
+        <li>Aller dans "Parametres"</li>
+        <li>Dans la section "Ouvertures exceptionnelles", cliquer sur "Ajouter"</li>
+        <li>Selectionner un samedi ou dimanche</li>
+        <li>Definir les horaires (ex: 10:00 - 14:00)</li>
+        <li>Ajouter une raison (optionnel)</li>
+        <li>Valider</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>Le formulaire s'affiche correctement</li>
+        <li>La date est selectionnable (y compris weekends)</li>
+        <li>Les heures de debut/fin sont configurables</li>
+        <li>L'ouverture apparait dans la liste apres creation</li>
+        <li>Le jour de la semaine est affiche en francais</li>
+    </ul>
+    <p><strong>Jeu de donnees :</strong></p>
+    <table>
+        <tr><th>Champ</th><th>Valeur</th></tr>
+        <tr><td>Date</td><td>Prochain samedi</td></tr>
+        <tr><td>Heure debut</td><td><code>10:00</code></td></tr>
+        <tr><td>Heure fin</td><td><code>14:00</code></td></tr>
+        <tr><td>Raison</td><td><code>Ouverture exceptionnelle test</code></td></tr>
+    </table>
+</div>
+
+<div class="test-box">
+    <h4>TEST-OPEN-002 : Affichage des ouvertures dans le calendrier public</h4>
+    <p><strong>Objectif :</strong> Verifier que les ouvertures exceptionnelles sont visibles cote client</p>
+    <p><strong>Prerequis :</strong> TEST-OPEN-001 reussi</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Acceder a https://www.aureluzdesign.fr/booking</li>
+        <li>Naviguer vers le mois contenant l'ouverture creee</li>
+        <li>Observer la date du weekend ouvert</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>La date du weekend est coloree en <strong>vert</strong></li>
+        <li>La date est <strong>cliquable</strong> (non grisee)</li>
+        <li>La legende indique "Ouverture exceptionnelle"</li>
+        <li>Au clic, les creneaux exceptionnels s'affichent</li>
+    </ul>
+</div>
+
+<div class="test-box">
+    <h4>TEST-OPEN-003 : Affichage des creneaux exceptionnels</h4>
+    <p><strong>Objectif :</strong> Verifier que seuls les creneaux exceptionnels sont verts</p>
+    <p><strong>Prerequis :</strong> TEST-OPEN-002 reussi</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Cliquer sur la date verte (ouverture exceptionnelle)</li>
+        <li>Observer les creneaux affiches</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>Les creneaux de l'ouverture exceptionnelle sont colores en <strong>vert</strong></li>
+        <li>Une icone calendrier+ apparait sur les creneaux verts</li>
+        <li>Le compteur indique "dont X exceptionnel(s)"</li>
+        <li>Les creneaux verts sont cliquables</li>
+    </ul>
+</div>
+
+<div class="page-break"></div>
+
+<h2>4. Systeme de devis</h2>
+
+<div class="test-box">
+    <h4>TEST-DEV-001 : Creation d'un nouveau devis</h4>
+    <p><strong>Objectif :</strong> Verifier la creation d'un devis depuis l'admin</p>
+    <p><strong>Prerequis :</strong> Acces admin</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Se connecter a l'admin</li>
+        <li>Aller dans "Devis" > "Nouveau devis"</li>
+        <li>Remplir les informations client</li>
+        <li>Ajouter des lignes de prestation</li>
+        <li>Configurer l'echeancier de paiement</li>
+        <li>Enregistrer</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>Le formulaire s'affiche correctement</li>
+        <li>Les lignes s'ajoutent dynamiquement</li>
+        <li>Les calculs (sous-total, TVA, total) sont automatiques</li>
+        <li>L'echeancier est configurable (pourcentages)</li>
+        <li>Le devis est cree avec statut "Brouillon"</li>
+        <li>Un numero de devis est genere (format: 2026-XXXX)</li>
+    </ul>
+    <p><strong>Jeu de donnees :</strong></p>
+    <table>
+        <tr><th>Champ</th><th>Valeur</th></tr>
+        <tr><td>Nom client</td><td><code>Entreprise Test SARL</code></td></tr>
+        <tr><td>Email</td><td><code>contact@entreprise-test.com</code></td></tr>
+        <tr><td>Telephone</td><td><code>01 23 45 67 89</code></td></tr>
+        <tr><td>Date evenement</td><td>Dans 2 mois</td></tr>
+        <tr><td>Type</td><td><code>Mariage</code></td></tr>
+        <tr><td>Ligne 1 - Description</td><td><code>Decoration florale</code></td></tr>
+        <tr><td>Ligne 1 - Quantite</td><td><code>1</code></td></tr>
+        <tr><td>Ligne 1 - Prix unitaire</td><td><code>500</code></td></tr>
+        <tr><td>Ligne 2 - Description</td><td><code>Location mobilier</code></td></tr>
+        <tr><td>Ligne 2 - Quantite</td><td><code>10</code></td></tr>
+        <tr><td>Ligne 2 - Prix unitaire</td><td><code>50</code></td></tr>
+        <tr><td>Taux TVA</td><td><code>20%</code></td></tr>
+        <tr><td>Echeancier</td><td><code>30% / 40% / 30%</code></td></tr>
+    </table>
+    <p><strong>Calculs attendus :</strong></p>
+    <ul>
+        <li>Sous-total HT : 500 + (10 x 50) = 1000 EUR</li>
+        <li>TVA 20% : 200 EUR</li>
+        <li>Total TTC : 1200 EUR</li>
+        <li>Acompte 30% : 360 EUR</li>
+    </ul>
+</div>
+
+<div class="test-box">
+    <h4>TEST-DEV-003 : Envoi du devis par email</h4>
+    <p><strong>Objectif :</strong> Verifier l'envoi du devis au client</p>
+    <p><strong>Prerequis :</strong> Devis cree</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Depuis la page du devis, cliquer sur "Envoyer au client"</li>
+        <li>Confirmer l'envoi</li>
+        <li>Verifier l'email recu</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>Confirmation d'envoi affichee</li>
+        <li>Statut passe a "Envoye"</li>
+        <li>Date d'envoi enregistree</li>
+        <li>Date d'expiration calculee (30 jours par defaut)</li>
+        <li>Email recu avec bouton "Consulter et accepter le devis"</li>
+        <li>Le PDF du devis est attache a l'email</li>
+    </ul>
+</div>
+
+<div class="page-break"></div>
+
+<h2>5. Paiement en ligne (Stripe)</h2>
+
+<div class="test-box">
+    <h4>TEST-PAY-001 : Acces a la page de validation (client)</h4>
+    <p><strong>Objectif :</strong> Verifier l'acces client a la page de validation du devis</p>
+    <p><strong>Prerequis :</strong> Devis envoye</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Ouvrir l'email recu par le client</li>
+        <li>Cliquer sur le bouton "Consulter et accepter le devis"</li>
+        <li>Observer la page affichee</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>La page s'affiche sans erreur</li>
+        <li>Les informations du devis sont visibles</li>
+        <li>Le montant total est affiche</li>
+        <li>L'echeancier de paiement est visible</li>
+        <li>Le bouton "Accepter le devis" est present</li>
+    </ul>
+</div>
+
+<div class="test-box">
+    <h4>TEST-PAY-002 : Acceptation du devis</h4>
+    <p><strong>Objectif :</strong> Verifier l'acceptation du devis par le client</p>
+    <p><strong>Prerequis :</strong> TEST-PAY-001 reussi</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Sur la page de validation, cliquer sur "Accepter le devis"</li>
+        <li>Observer le changement d'etat</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>Message de confirmation d'acceptation</li>
+        <li>Le bouton "Payer l'acompte" apparait</li>
+        <li>Le montant de l'acompte est affiche</li>
+        <li>Cote admin : statut passe a "Accepte"</li>
+        <li>Cote admin : date d'acceptation enregistree</li>
+    </ul>
+</div>
+
+<div class="test-box">
+    <h4>TEST-PAY-003 : Paiement de l'acompte via Stripe</h4>
+    <p><strong>Objectif :</strong> Verifier le paiement en ligne via Stripe</p>
+    <p><strong>Prerequis :</strong> TEST-PAY-002 reussi</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Cliquer sur "Payer l'acompte"</li>
+        <li>Remplir le formulaire Stripe avec les donnees de test</li>
+        <li>Confirmer le paiement</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>Redirection vers la page Stripe Checkout</li>
+        <li>Le montant affiche correspond a l'acompte</li>
+        <li>La description indique "Acompte Devis XXXX"</li>
+        <li>Paiement accepte avec la carte de test</li>
+        <li>Redirection vers la page de succes</li>
+        <li>Message de confirmation avec bouton "Telecharger la facture"</li>
+    </ul>
+    <p><strong>Jeu de donnees Stripe :</strong></p>
+    <table>
+        <tr><th>Champ</th><th>Valeur</th></tr>
+        <tr><td>Numero de carte</td><td><code>4242 4242 4242 4242</code></td></tr>
+        <tr><td>Expiration</td><td><code>12/30</code></td></tr>
+        <tr><td>CVC</td><td><code>123</code></td></tr>
+        <tr><td>Code postal</td><td><code>75001</code></td></tr>
+    </table>
+</div>
+
+<div class="test-box">
+    <h4>TEST-PAY-005 : Paiement refuse</h4>
+    <p><strong>Objectif :</strong> Verifier le comportement en cas de paiement refuse</p>
+    <p><strong>Prerequis :</strong> Nouveau devis accepte</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Cliquer sur "Payer l'acompte"</li>
+        <li>Utiliser une carte de test qui echoue</li>
+        <li>Observer le comportement</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>Message d'erreur Stripe affiche</li>
+        <li>Possibilite de reessayer</li>
+        <li>Le devis reste en statut "Accepte" (pas "Paye")</li>
+        <li>Aucune facture generee</li>
+    </ul>
+    <p><strong>Jeu de donnees (carte refusee) :</strong></p>
+    <table>
+        <tr><th>Champ</th><th>Valeur</th></tr>
+        <tr><td>Numero de carte</td><td><code>4000 0000 0000 0002</code></td></tr>
+        <tr><td>Expiration</td><td><code>12/30</code></td></tr>
+        <tr><td>CVC</td><td><code>123</code></td></tr>
+    </table>
+</div>
+
+<div class="page-break"></div>
+
+<h2>6. Gestion des factures</h2>
+
+<div class="test-box">
+    <h4>TEST-FAC-001 : Generation automatique de facture</h4>
+    <p><strong>Objectif :</strong> Verifier la generation automatique de facture apres paiement</p>
+    <p><strong>Prerequis :</strong> TEST-PAY-003 reussi</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Acceder a l'admin</li>
+        <li>Verifier les details du devis paye</li>
+        <li>Acceder a la facture generee</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>Facture creee automatiquement</li>
+        <li>Numero de facture au format FAC-2026-XXXX</li>
+        <li>Lien vers le devis d'origine</li>
+        <li>Montant correspondant au paiement effectue</li>
+        <li>Date de creation = date du paiement</li>
+    </ul>
+</div>
+
+<div class="test-box">
+    <h4>TEST-FAC-002 : Telechargement de la facture PDF</h4>
+    <p><strong>Objectif :</strong> Verifier le contenu de la facture PDF</p>
+    <p><strong>Prerequis :</strong> TEST-FAC-001 reussi</p>
+    <p><strong>Procedure de test :</strong></p>
+    <ol>
+        <li>Telecharger la facture PDF</li>
+        <li>Verifier le contenu</li>
+    </ol>
+    <p><strong>Resultats attendus :</strong></p>
+    <ul class="checklist">
+        <li>PDF telecharge correctement</li>
+        <li>Logo AureLuz present et bien positionne</li>
+        <li>Numero de facture visible</li>
+        <li>Informations client correctes</li>
+        <li>Montant HT, TVA, TTC corrects</li>
+        <li>Badge "PAIEMENT RECU" en vert</li>
+        <li>Pas d'erreur d'encodage (espaces, symboles EUR)</li>
+    </ul>
+</div>
+
+<div class="page-break"></div>
+
+<h2>Annexe A : Fiche de suivi des tests</h2>
+
+<table>
+    <tr>
+        <th>ID Test</th>
+        <th>Description</th>
+        <th>Testeur</th>
+        <th>Date</th>
+        <th>Statut</th>
+        <th>Commentaires</th>
+    </tr>
+    <tr><td>TEST-RES-001</td><td>Affichage calendrier</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>TEST-RES-002</td><td>Selection date</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>TEST-RES-003</td><td>Affichage creneaux</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>TEST-RES-004</td><td>Selection creneau</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>TEST-RES-005</td><td>Formulaire reservation</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>TEST-OPEN-001</td><td>Creation ouverture</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>TEST-OPEN-002</td><td>Affichage calendrier vert</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>TEST-OPEN-003</td><td>Creneaux exceptionnels</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>TEST-DEV-001</td><td>Creation devis</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>TEST-DEV-003</td><td>Envoi devis</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>TEST-PAY-001</td><td>Page validation</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>TEST-PAY-002</td><td>Acceptation devis</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>TEST-PAY-003</td><td>Paiement Stripe</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>TEST-PAY-005</td><td>Paiement refuse</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>TEST-FAC-001</td><td>Generation facture</td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>TEST-FAC-002</td><td>PDF facture</td><td></td><td></td><td></td><td></td></tr>
+</table>
+
+<hr>
+<p><strong>Fin du document</strong></p>
+
+</body>
+</html>
