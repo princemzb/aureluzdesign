@@ -30,12 +30,20 @@ import {
   frLocale,
 } from '@/lib/utils/date';
 import { APPOINTMENT_STATUSES, EVENT_TYPES } from '@/lib/utils/constants';
-import type { Appointment, AppointmentStatus } from '@/lib/types';
+import type { Appointment, AppointmentStatus, Task, TaskPriority } from '@/lib/types';
 
 interface AppointmentsManagerProps {
   appointments: Appointment[];
+  tasks: Task[];
   onUpdateStatus: (id: string, status: AppointmentStatus) => Promise<void>;
 }
+
+const PRIORITY_COLORS: Record<TaskPriority, { bg: string; text: string }> = {
+  urgent: { bg: 'bg-red-500', text: 'text-white' },
+  high: { bg: 'bg-orange-500', text: 'text-white' },
+  normal: { bg: 'bg-blue-500', text: 'text-white' },
+  low: { bg: 'bg-gray-400', text: 'text-white' },
+};
 
 type ViewMode = 'list' | 'calendar';
 
@@ -48,10 +56,11 @@ const STATUS_FILTERS = [
 
 export function AppointmentsManager({
   appointments,
+  tasks,
   onUpdateStatus,
 }: AppointmentsManagerProps) {
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -163,6 +172,11 @@ export function AppointmentsManager({
   const getAppointmentsForDay = (day: Date) => {
     const dateStr = format(day, 'yyyy-MM-dd');
     return filteredAppointments.filter((a) => a.date === dateStr);
+  };
+
+  const getTasksForDay = (day: Date) => {
+    const dateStr = format(day, 'yyyy-MM-dd');
+    return tasks.filter((t) => t.due_date?.split('T')[0] === dateStr);
   };
 
   return (
@@ -394,7 +408,10 @@ export function AppointmentsManager({
               {/* Actual days */}
               {calendarDays.days.map((day) => {
                 const dayAppointments = getAppointmentsForDay(day);
+                const dayTasks = getTasksForDay(day);
                 const isToday = isSameDay(day, new Date());
+                const totalItems = dayAppointments.length + dayTasks.length;
+                const maxDisplay = 3;
 
                 return (
                   <div
@@ -413,9 +430,10 @@ export function AppointmentsManager({
                       {format(day, 'd')}
                     </div>
                     <div className="space-y-1">
-                      {dayAppointments.slice(0, 3).map((appointment) => (
+                      {/* Appointments */}
+                      {dayAppointments.slice(0, maxDisplay).map((appointment) => (
                         <button
-                          key={appointment.id}
+                          key={`apt-${appointment.id}`}
                           onClick={() => handleRowClick(appointment.id)}
                           className={cn(
                             'w-full text-left text-xs p-1 rounded truncate',
@@ -423,14 +441,33 @@ export function AppointmentsManager({
                             appointment.status === 'confirmed' && 'bg-green-100 text-green-800',
                             appointment.status === 'cancelled' && 'bg-red-100 text-red-800 line-through'
                           )}
-                          title={`${appointment.start_time.slice(0, 5)} - ${appointment.client_name}`}
+                          title={`RDV ${appointment.start_time.slice(0, 5)} - ${appointment.client_name}`}
                         >
                           {appointment.start_time.slice(0, 5)} {appointment.client_name.split(' ')[0]}
                         </button>
                       ))}
-                      {dayAppointments.length > 3 && (
+                      {/* Tasks (only if we have room) */}
+                      {dayTasks.slice(0, Math.max(0, maxDisplay - dayAppointments.length)).map((task) => {
+                        const colors = PRIORITY_COLORS[task.priority];
+                        return (
+                          <div
+                            key={`task-${task.id}`}
+                            className={cn(
+                              'w-full text-left text-xs p-1 rounded truncate',
+                              colors.bg,
+                              colors.text,
+                              task.status === 'completed' && 'opacity-50 line-through',
+                              task.status === 'cancelled' && 'opacity-30 line-through'
+                            )}
+                            title={`Tâche: ${task.name}`}
+                          >
+                            📋 {task.name}
+                          </div>
+                        );
+                      })}
+                      {totalItems > maxDisplay && (
                         <div className="text-xs text-muted-foreground text-center">
-                          +{dayAppointments.length - 3} autres
+                          +{totalItems - maxDisplay} autres
                         </div>
                       )}
                     </div>

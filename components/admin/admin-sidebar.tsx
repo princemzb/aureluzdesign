@@ -25,7 +25,7 @@ import { useLogo } from '@/components/providers/logo-provider';
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Analytiques', href: '/admin/analytics', icon: BarChart3 },
-  { name: 'Rendez-vous', href: '/admin/appointments', icon: Calendar },
+  { name: 'Agenda', href: '/admin/appointments', icon: Calendar },
   { name: 'Workspace', href: '/admin/clients', icon: Users },
   { name: 'Gestion site', href: '/admin/site', icon: Globe },
   { name: 'Aperçu site', href: '/admin/preview', icon: Eye },
