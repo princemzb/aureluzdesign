@@ -434,12 +434,8 @@ export function AppointmentsManager({
                     <div className="space-y-1">
                       {/* Appointments */}
                       {dayAppointments.slice(0, maxDisplay).map((appointment) => (
-                        <button
+                        <div
                           key={`apt-${appointment.id}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRowClick(appointment.id);
-                          }}
                           className={cn(
                             'w-full text-left text-xs p-1 rounded truncate',
                             appointment.status === 'pending' && 'bg-yellow-100 text-yellow-800',
@@ -449,7 +445,7 @@ export function AppointmentsManager({
                           title={`RDV ${appointment.start_time.slice(0, 5)} - ${appointment.client_name}`}
                         >
                           {appointment.start_time.slice(0, 5)} {appointment.client_name.split(' ')[0]}
-                        </button>
+                        </div>
                       ))}
                       {/* Tasks (only if we have room) */}
                       {dayTasks.slice(0, Math.max(0, maxDisplay - dayAppointments.length)).map((task) => {

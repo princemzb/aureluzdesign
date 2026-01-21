@@ -171,10 +171,11 @@ export default async function DayViewPage({ params }: DayViewPageProps) {
               {tasks.map((task) => {
                 const colors = PRIORITY_COLORS[task.priority];
                 return (
-                  <div
+                  <Link
                     key={task.id}
+                    href={`/admin/clients/${task.client_id}`}
                     className={cn(
-                      'p-4 border-l-4',
+                      'block p-4 border-l-4 transition-shadow hover:shadow-md',
                       colors.bg,
                       colors.border,
                       task.status === 'completed' && 'opacity-50'
@@ -207,7 +208,7 @@ export default async function DayViewPage({ params }: DayViewPageProps) {
                         {task.status === 'cancelled' && 'Annulé'}
                       </span>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
