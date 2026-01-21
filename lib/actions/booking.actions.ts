@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { bookingSchema, type BookingFormData } from '@/lib/validators/booking.schema';
 import { createClient } from '@/lib/supabase/server';
 import { sendBookingConfirmation, sendAdminNotification } from '@/lib/services/email.service';
+import { ClientsService } from '@/lib/services/clients.service';
 
 export async function createAppointment(
   data: BookingFormData
@@ -87,13 +88,29 @@ export async function createAppointment(
       };
     }
 
-    // 7. Send confirmation emails
+    // 7. Créer automatiquement le client s'il n'existe pas
+    try {
+      const existingClient = await ClientsService.getByEmail(validatedData.client_email);
+      if (!existingClient) {
+        await ClientsService.create({
+          name: validatedData.client_name,
+          email: validatedData.client_email,
+          phone: validatedData.client_phone,
+        });
+      }
+    } catch (clientError) {
+      // On log l'erreur mais on ne bloque pas la réservation
+      console.error('Error creating client:', clientError);
+    }
+
+    // 8. Send confirmation emails
     await sendBookingConfirmation(validatedData);
     await sendAdminNotification(validatedData);
 
-    // 8. Revalidate paths
+    // 9. Revalidate paths
     revalidatePath('/booking');
     revalidatePath('/admin/appointments');
+    revalidatePath('/admin/clients');
 
     return { success: true };
   } catch (error) {
