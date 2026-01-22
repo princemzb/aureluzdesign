@@ -368,6 +368,8 @@ export interface Task {
   name: string;
   location: string | null;
   due_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
   description: string | null;
   status: TaskStatus;
   priority: TaskPriority;
@@ -377,11 +379,25 @@ export interface Task {
   completed_at: string | null;
 }
 
+export interface TaskDetail {
+  id: string;
+  task_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskWithDetails extends Task {
+  details: TaskDetail[];
+}
+
 export interface CreateTaskInput {
   client_id: string;
   name: string;
   location?: string;
   due_date?: string;
+  start_time?: string;
+  end_time?: string;
   description?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
@@ -392,10 +408,21 @@ export interface UpdateTaskInput {
   name?: string;
   location?: string;
   due_date?: string;
+  start_time?: string | null;
+  end_time?: string | null;
   description?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
   attachments?: TaskAttachment[];
+}
+
+export interface CreateTaskDetailInput {
+  task_id: string;
+  content: string;
+}
+
+export interface UpdateTaskDetailInput {
+  content: string;
 }
 
 export interface TaskWithClient extends Task {

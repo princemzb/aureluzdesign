@@ -2,7 +2,18 @@
 
 import { revalidatePath } from 'next/cache';
 import { TasksService, type PaginatedTasks, type TasksFilters, type CalendarTask } from '@/lib/services/tasks.service';
-import type { Task, TaskWithClient, CreateTaskInput, UpdateTaskInput, TaskStatus, ActionResult } from '@/lib/types';
+import type {
+  Task,
+  TaskWithClient,
+  TaskWithDetails,
+  TaskDetail,
+  CreateTaskInput,
+  UpdateTaskInput,
+  CreateTaskDetailInput,
+  UpdateTaskDetailInput,
+  TaskStatus,
+  ActionResult,
+} from '@/lib/types';
 
 /**
  * Récupère toutes les tâches avec filtres et pagination
@@ -134,4 +145,88 @@ export async function getUpcomingTasks(limit: number = 5): Promise<TaskWithClien
  */
 export async function getTasksCountByStatus(clientId: string): Promise<Record<TaskStatus, number>> {
   return TasksService.getTasksCountByStatus(clientId);
+}
+
+// ============================================
+// Task Details Actions
+// ============================================
+
+/**
+ * Récupère une tâche avec ses détails
+ */
+export async function getTaskWithDetails(id: string): Promise<TaskWithDetails | null> {
+  return TasksService.getByIdWithDetails(id);
+}
+
+/**
+ * Récupère une tâche avec client et détails
+ */
+export async function getTaskWithClientAndDetails(id: string): Promise<(TaskWithClient & { details: TaskDetail[] }) | null> {
+  return TasksService.getByIdWithClientAndDetails(id);
+}
+
+/**
+ * Ajoute un détail à une tâche
+ */
+export async function addTaskDetail(input: CreateTaskDetailInput): Promise<ActionResult<TaskDetail>> {
+  try {
+    const detail = await TasksService.addDetail(input);
+    revalidatePath(`/admin/tasks/${input.task_id}`);
+    return {
+      success: true,
+      data: detail,
+    };
+  } catch (error) {
+    console.error('Error in addTaskDetail action:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur lors de l\'ajout du détail',
+    };
+  }
+}
+
+/**
+ * Met à jour un détail de tâche
+ */
+export async function updateTaskDetail(id: string, taskId: string, input: UpdateTaskDetailInput): Promise<ActionResult<TaskDetail>> {
+  try {
+    const detail = await TasksService.updateDetail(id, input);
+    revalidatePath(`/admin/tasks/${taskId}`);
+    return {
+      success: true,
+      data: detail,
+    };
+  } catch (error) {
+    console.error('Error in updateTaskDetail action:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur lors de la mise à jour du détail',
+    };
+  }
+}
+
+/**
+ * Supprime un détail de tâche
+ */
+export async function deleteTaskDetail(id: string, taskId: string): Promise<ActionResult> {
+  try {
+    await TasksService.deleteDetail(id);
+    revalidatePath(`/admin/tasks/${taskId}`);
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error('Error in deleteTaskDetail action:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur lors de la suppression du détail',
+    };
+  }
+}
+
+/**
+ * Récupère les détails d'une tâche
+ */
+export async function getTaskDetails(taskId: string): Promise<TaskDetail[]> {
+  return TasksService.getDetails(taskId);
 }

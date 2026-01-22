@@ -1,5 +1,16 @@
 import { createAdminClient } from '@/lib/supabase/server';
-import type { Task, TaskWithClient, CreateTaskInput, UpdateTaskInput, TaskStatus, TaskPriority } from '@/lib/types';
+import type {
+  Task,
+  TaskWithClient,
+  TaskWithDetails,
+  TaskDetail,
+  CreateTaskInput,
+  UpdateTaskInput,
+  CreateTaskDetailInput,
+  UpdateTaskDetailInput,
+  TaskStatus,
+  TaskPriority,
+} from '@/lib/types';
 
 export interface PaginatedTasks {
   tasks: Task[];
@@ -188,6 +199,8 @@ export class TasksService {
         name: input.name,
         location: input.location || null,
         due_date: input.due_date || null,
+        start_time: input.start_time || null,
+        end_time: input.end_time || null,
         description: input.description || null,
         status: input.status || 'pending',
         priority: input.priority || 'normal',
@@ -215,6 +228,8 @@ export class TasksService {
     if (input.name !== undefined) updateData.name = input.name;
     if (input.location !== undefined) updateData.location = input.location || null;
     if (input.due_date !== undefined) updateData.due_date = input.due_date || null;
+    if (input.start_time !== undefined) updateData.start_time = input.start_time || null;
+    if (input.end_time !== undefined) updateData.end_time = input.end_time || null;
     if (input.description !== undefined) updateData.description = input.description || null;
     if (input.status !== undefined) updateData.status = input.status;
     if (input.priority !== undefined) updateData.priority = input.priority;
@@ -360,5 +375,155 @@ export class TasksService {
     });
 
     return counts;
+  }
+
+  // ============================================
+  // Task Details Methods
+  // ============================================
+
+  /**
+   * Récupère une tâche avec ses détails
+   */
+  static async getByIdWithDetails(id: string): Promise<TaskWithDetails | null> {
+    const supabase = createAdminClient();
+
+    const { data: task, error: taskError } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (taskError || !task) {
+      console.error('Error fetching task:', taskError);
+      return null;
+    }
+
+    const { data: details, error: detailsError } = await supabase
+      .from('task_details')
+      .select('*')
+      .eq('task_id', id)
+      .order('created_at', { ascending: false });
+
+    if (detailsError) {
+      console.error('Error fetching task details:', detailsError);
+      return { ...task, details: [] };
+    }
+
+    return { ...task, details: details || [] };
+  }
+
+  /**
+   * Récupère une tâche avec client et détails
+   */
+  static async getByIdWithClientAndDetails(id: string): Promise<(TaskWithClient & { details: TaskDetail[] }) | null> {
+    const supabase = createAdminClient();
+
+    const { data: task, error: taskError } = await supabase
+      .from('tasks')
+      .select(`
+        *,
+        client:clients(*)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (taskError || !task) {
+      console.error('Error fetching task with client:', taskError);
+      return null;
+    }
+
+    const { data: details, error: detailsError } = await supabase
+      .from('task_details')
+      .select('*')
+      .eq('task_id', id)
+      .order('created_at', { ascending: false });
+
+    if (detailsError) {
+      console.error('Error fetching task details:', detailsError);
+      return { ...task, details: [] };
+    }
+
+    return { ...task, details: details || [] };
+  }
+
+  /**
+   * Ajoute un détail à une tâche
+   */
+  static async addDetail(input: CreateTaskDetailInput): Promise<TaskDetail> {
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+      .from('task_details')
+      .insert({
+        task_id: input.task_id,
+        content: input.content,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding task detail:', error);
+      throw new Error(error.message);
+    }
+
+    return data;
+  }
+
+  /**
+   * Met à jour un détail de tâche
+   */
+  static async updateDetail(id: string, input: UpdateTaskDetailInput): Promise<TaskDetail> {
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+      .from('task_details')
+      .update({ content: input.content })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating task detail:', error);
+      throw new Error(error.message);
+    }
+
+    return data;
+  }
+
+  /**
+   * Supprime un détail de tâche
+   */
+  static async deleteDetail(id: string): Promise<void> {
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+      .from('task_details')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting task detail:', error);
+      throw new Error(error.message);
+    }
+  }
+
+  /**
+   * Récupère les détails d'une tâche
+   */
+  static async getDetails(taskId: string): Promise<TaskDetail[]> {
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+      .from('task_details')
+      .select('*')
+      .eq('task_id', taskId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching task details:', error);
+      return [];
+    }
+
+    return data || [];
   }
 }

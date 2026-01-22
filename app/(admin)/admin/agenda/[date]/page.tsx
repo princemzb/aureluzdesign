@@ -173,7 +173,7 @@ export default async function DayViewPage({ params }: DayViewPageProps) {
                 return (
                   <Link
                     key={task.id}
-                    href={`/admin/clients/${task.client_id}`}
+                    href={`/admin/tasks/${task.id}`}
                     className={cn(
                       'block p-4 border-l-4 transition-shadow hover:shadow-md',
                       colors.bg,
