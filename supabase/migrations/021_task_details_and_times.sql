@@ -23,7 +23,7 @@ CREATE INDEX idx_task_details_created_at ON task_details(created_at DESC);
 CREATE TRIGGER task_details_updated_at
     BEFORE UPDATE ON task_details
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+    EXECUTE FUNCTION update_updated_at();
 
 -- RLS pour task_details
 ALTER TABLE task_details ENABLE ROW LEVEL SECURITY;
