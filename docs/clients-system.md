@@ -7,7 +7,9 @@ Le **Workspace** est un hub centralisé permettant de gérer les clients et de r
 **Fonctionnalités clés :**
 - Création automatique des clients lors d'une prise de RDV
 - Agenda global affichant tous les RDV + tâches de tous les clients
+- Vue journalière de l'agenda avec timeline
 - Fiche client détaillée avec onglets (Devis, Tâches, Agenda, Factures)
+- Page détail des tâches avec gestion des notes/détails
 
 ## Architecture
 
@@ -37,6 +39,21 @@ Le **Workspace** est un hub centralisé permettant de gérer les clients et de r
 │   Vue calendrier par défaut affichant :                                     │
 │   - Tous les RDV (jaune=attente, vert=confirmé, rouge=annulé)              │
 │   - Toutes les tâches (couleur selon priorité : rouge/orange/bleu/gris)    │
+│                                                                              │
+│   Clic sur une date → /admin/agenda/[date] (vue journalière)               │
+│                                                                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                            GESTION DES TÂCHES                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   /admin/tasks/[id]                 Page détail de la tâche :               │
+│        │                             ├── Statut modifiable (boutons)        │
+│        │                             ├── Infos (date, créneau, lieu)        │
+│        │                             └── Section détails/notes              │
+│        │                                                                     │
+│        └── /modifier                 Formulaire édition complet             │
+│                                                                              │
+│   /admin/tasks/nouveau?client=xxx   Création nouvelle tâche                 │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -88,6 +105,8 @@ tasks (
   name text NOT NULL,
   location text,
   due_date timestamptz,
+  start_time time,           -- Créneau horaire optionnel
+  end_time time,             -- Créneau horaire optionnel
   description text,
   status task_status DEFAULT 'pending',  -- pending, in_progress, completed, cancelled
   priority task_priority DEFAULT 'normal', -- urgent, high, normal, low
@@ -95,6 +114,20 @@ tasks (
   created_at timestamptz,
   updated_at timestamptz,
   completed_at timestamptz
+)
+```
+
+### Table `task_details`
+
+Blocs de texte/notes attachés à une tâche.
+
+```sql
+task_details (
+  id uuid PRIMARY KEY,
+  task_id uuid REFERENCES tasks NOT NULL ON DELETE CASCADE,
+  content text NOT NULL,
+  created_at timestamptz,
+  updated_at timestamptz
 )
 ```
 
@@ -113,20 +146,22 @@ ALTER TABLE quotes ADD COLUMN client_id uuid REFERENCES clients NOT NULL;
 | `017_create_clients.sql` | Création table clients |
 | `018_create_tasks.sql` | Création table tasks |
 | `019_link_quotes_to_clients.sql` | Ajout client_id aux quotes + migration données |
+| `020_client_cascade_delete.sql` | FK avec CASCADE pour suppression client |
+| `021_task_details_and_times.sql` | Table task_details + champs start_time/end_time |
 
 ### Services
 
 | Fichier | Description |
 |---------|-------------|
 | `lib/services/clients.service.ts` | CRUD clients, recherche, pagination, stats |
-| `lib/services/tasks.service.ts` | CRUD tâches, filtrage, calendrier |
+| `lib/services/tasks.service.ts` | CRUD tâches, filtrage, calendrier, détails |
 
 ### Actions
 
 | Fichier | Description |
 |---------|-------------|
 | `lib/actions/clients.actions.ts` | Server actions clients |
-| `lib/actions/tasks.actions.ts` | Server actions tâches |
+| `lib/actions/tasks.actions.ts` | Server actions tâches + détails |
 
 ### Pages
 
@@ -136,18 +171,24 @@ ALTER TABLE quotes ADD COLUMN client_id uuid REFERENCES clients NOT NULL;
 | `/admin/clients/nouveau` | `app/(admin)/admin/clients/nouveau/page.tsx` |
 | `/admin/clients/[id]` | `app/(admin)/admin/clients/[id]/page.tsx` |
 | `/admin/clients/[id]/modifier` | `app/(admin)/admin/clients/[id]/modifier/page.tsx` |
+| `/admin/agenda/[date]` | `app/(admin)/admin/agenda/[date]/page.tsx` |
+| `/admin/tasks/[id]` | `app/(admin)/admin/tasks/[id]/page.tsx` |
+| `/admin/tasks/[id]/modifier` | `app/(admin)/admin/tasks/[id]/modifier/page.tsx` |
+| `/admin/tasks/nouveau` | `app/(admin)/admin/tasks/nouveau/page.tsx` |
 
 ### Composants
 
 | Fichier | Description |
 |---------|-------------|
-| `components/admin/clients-list.tsx` | Liste paginée avec recherche |
+| `components/admin/clients-list.tsx` | Liste paginée avec recherche et suppression |
 | `components/admin/client-form.tsx` | Formulaire création/édition |
 | `components/admin/client-detail-tabs.tsx` | Onglets (Devis/Tâches/Agenda/Factures) |
-| `components/admin/client-tasks-list.tsx` | Liste des tâches avec statut/priorité |
+| `components/admin/client-tasks-list.tsx` | Liste des tâches avec actions visibles |
 | `components/admin/client-agenda.tsx` | Vue calendrier (semaine/mois) |
 | `components/admin/client-selector.tsx` | Sélecteur client pour formulaire devis |
-| `components/admin/task-form-modal.tsx` | Modal création/édition tâche |
+| `components/admin/delete-client-button.tsx` | Bouton suppression avec confirmation |
+| `app/.../tasks/[id]/task-status-changer.tsx` | Boutons changement de statut |
+| `app/.../tasks/[id]/task-details-section.tsx` | Gestion des détails/notes |
 
 ## Concepts clés
 
@@ -172,6 +213,61 @@ type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
 
 // Workflow typique : pending → in_progress → completed
 ```
+
+### Détails de tâche
+
+Chaque tâche peut avoir plusieurs blocs de notes/détails. Ils sont affichés avec des couleurs alternées pour une meilleure lisibilité.
+
+```typescript
+interface TaskDetail {
+  id: string;
+  task_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Ajout d'un détail
+const result = await addTaskDetail({ task_id: taskId, content: "Note importante..." });
+
+// Suppression
+await deleteTaskDetail(detailId, taskId);
+```
+
+### Créneau horaire des tâches
+
+Les tâches peuvent optionnellement avoir un créneau d'exécution :
+
+```typescript
+interface Task {
+  // ...
+  start_time: string | null;  // Format "HH:MM:SS"
+  end_time: string | null;
+}
+```
+
+Dans la vue journalière de l'agenda, les tâches avec créneau pourraient être positionnées sur la timeline (fonctionnalité future).
+
+### Navigation agenda → tâche
+
+Depuis le calendrier global (`/admin/appointments`) :
+1. Clic sur une date → `/admin/agenda/[date]` (vue journalière)
+2. Sur la vue journalière :
+   - Clic sur un RDV → `/admin/appointments/[id]`
+   - Clic sur une tâche → `/admin/tasks/[id]`
+
+### Liste des tâches (fiche client)
+
+Les tâches sont affichées avec :
+- Indicateur de priorité (icône colorée)
+- Badge de statut
+- Date limite (rouge si en retard)
+- Lieu
+- Actions visibles directement (pas de menu déroulant) :
+  - Boutons de statut (En attente / En cours / Terminé)
+  - Modifier
+  - Supprimer
+- Clic sur la tâche → page détail
 
 ### Sélection client pour devis
 
@@ -227,7 +323,7 @@ WHERE q.client_email = c.email;
 1. Migration SQL pour ajouter la colonne
 2. Mettre à jour le type `Task` dans `lib/types/index.ts`
 3. Mettre à jour le service `tasks.service.ts`
-4. Mettre à jour le formulaire `task-form-modal.tsx`
+4. Mettre à jour les formulaires dans `app/(admin)/admin/tasks/`
 
 ### Statistiques client
 
@@ -244,6 +340,7 @@ La suppression d'un client entraîne la suppression en cascade de toutes ses don
 ```
 Client supprimé
   ├── Tâches (CASCADE automatique via FK)
+  │     └── Détails de tâche (CASCADE automatique via FK)
   ├── Devis (CASCADE automatique via FK)
   │     └── Factures (CASCADE automatique via FK quote_id)
   └── RDV (suppression manuelle par email dans le service)
@@ -274,7 +371,7 @@ static async delete(id: string): Promise<void> {
     .delete()
     .eq('client_email', client.email);
 
-  // 3. Supprimer le client (CASCADE: tâches, devis, factures)
+  // 3. Supprimer le client (CASCADE: tâches, détails, devis, factures)
   await supabase
     .from('clients')
     .delete()
@@ -302,3 +399,16 @@ SELECT * FROM tasks
 WHERE status = 'completed'
 AND completed_at < NOW() - INTERVAL '6 months';
 ```
+
+### Nettoyer les détails orphelins
+
+```sql
+-- Détails sans tâche (ne devrait pas arriver avec CASCADE)
+SELECT td.* FROM task_details td
+LEFT JOIN tasks t ON td.task_id = t.id
+WHERE t.id IS NULL;
+```
+
+## Dernière mise à jour
+
+Janvier 2026
