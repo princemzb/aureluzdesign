@@ -4,6 +4,7 @@ import type {
   TaskWithClient,
   TaskWithDetails,
   TaskDetail,
+  TaskSubtask,
   CreateTaskInput,
   UpdateTaskInput,
   CreateTaskDetailInput,
@@ -234,6 +235,7 @@ export class TasksService {
     if (input.status !== undefined) updateData.status = input.status;
     if (input.priority !== undefined) updateData.priority = input.priority;
     if (input.attachments !== undefined) updateData.attachments = input.attachments;
+    if (input.auto_complete !== undefined) updateData.auto_complete = input.auto_complete;
 
     const { data, error } = await supabase
       .from('tasks')
@@ -413,9 +415,9 @@ export class TasksService {
   }
 
   /**
-   * Récupère une tâche avec client et détails
+   * Récupère une tâche avec client, détails et sous-tâches
    */
-  static async getByIdWithClientAndDetails(id: string): Promise<(TaskWithClient & { details: TaskDetail[] }) | null> {
+  static async getByIdWithClientAndDetails(id: string): Promise<(TaskWithClient & { details: TaskDetail[]; subtasks: TaskSubtask[] }) | null> {
     const supabase = createAdminClient();
 
     const { data: task, error: taskError } = await supabase
@@ -432,18 +434,32 @@ export class TasksService {
       return null;
     }
 
-    const { data: details, error: detailsError } = await supabase
-      .from('task_details')
-      .select('*')
-      .eq('task_id', id)
-      .order('created_at', { ascending: false });
+    // Récupérer détails et sous-tâches en parallèle
+    const [detailsResult, subtasksResult] = await Promise.all([
+      supabase
+        .from('task_details')
+        .select('*')
+        .eq('task_id', id)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('task_subtasks')
+        .select('*')
+        .eq('task_id', id)
+        .order('position', { ascending: true }),
+    ]);
 
-    if (detailsError) {
-      console.error('Error fetching task details:', detailsError);
-      return { ...task, details: [] };
+    if (detailsResult.error) {
+      console.error('Error fetching task details:', detailsResult.error);
+    }
+    if (subtasksResult.error) {
+      console.error('Error fetching task subtasks:', subtasksResult.error);
     }
 
-    return { ...task, details: details || [] };
+    return {
+      ...task,
+      details: detailsResult.data || [],
+      subtasks: subtasksResult.data || [],
+    };
   }
 
   /**

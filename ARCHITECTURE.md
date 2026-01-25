@@ -107,7 +107,7 @@ AureLuz Design est une application web complète pour une entreprise de décorat
 ├───────────────────────────────┼──────────────────────────────────────────────┤
 │    ┌─────────────┐    ┌───────┴───────┐    ┌─────────────┐                   │
 │    │    Auth     │    │   PostgreSQL  │    │   Storage   │                   │
-│    │  (Admin)    │    │  (12 tables)  │    │  (Photos)   │                   │
+│    │  (Admin)    │    │  (16 tables)  │    │  (Photos)   │                   │
 │    └─────────────┘    └───────────────┘    └─────────────┘                   │
 └───────────────────────────────────────────────────────────────────────────────┘
                                 │
@@ -1919,6 +1919,9 @@ export function cn(...inputs: ClassValue[]) {
 | `SiteServicesService` | Services configurables (Signature, Instants, Coaching) |
 | `EmailTemplatesService` | Templates email éditables |
 | `GeolocationService` | Géolocalisation IP pour analytics |
+| `ClientsService` | CRUD clients, stats, suppression cascade |
+| `TasksService` | CRUD tâches, filtrage, détails |
+| `TaskSubtasksService` | Sous-tâches, réordonnancement, auto-completion |
 
 ### 13.4 Migrations SQL
 
@@ -1939,10 +1942,20 @@ export function cn(...inputs: ClassValue[]) {
 | `015` | Ajout `accepted_at` - Date acceptation devis |
 | `016` | `open_slots` - Créneaux ouverts exceptionnellement |
 | `20240106*` | `testimonials` - Témoignages |
+| `017-020` | `clients`, `tasks` - Workspace clients et tâches |
+| `021` | `task_details` - Notes/détails des tâches |
+| `022` | `task_subtasks` - Sous-tâches (checklist) avec drag & drop |
 
 ---
 
 ## Changelog
+
+### Version 2.5 (Janvier 2026)
+- Système de sous-tâches (checklist) pour les tâches
+- Drag & drop avec @dnd-kit pour réorganisation
+- Barre de progression des sous-tâches
+- Option "Terminer automatiquement" quand toutes les sous-tâches sont complétées
+- Nouveau composant Switch UI
 
 ### Version 2.4 (Janvier 2026)
 - Sécurité session renforcée avec double protection :

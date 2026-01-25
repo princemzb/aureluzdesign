@@ -374,6 +374,7 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   attachments: TaskAttachment[];
+  auto_complete: boolean;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -387,8 +388,27 @@ export interface TaskDetail {
   updated_at: string;
 }
 
+export interface TaskSubtask {
+  id: string;
+  task_id: string;
+  content: string;
+  is_completed: boolean;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TaskWithDetails extends Task {
   details: TaskDetail[];
+}
+
+export interface TaskWithSubtasks extends Task {
+  subtasks: TaskSubtask[];
+}
+
+export interface TaskFull extends Task {
+  details: TaskDetail[];
+  subtasks: TaskSubtask[];
 }
 
 export interface CreateTaskInput {
@@ -402,6 +422,7 @@ export interface CreateTaskInput {
   status?: TaskStatus;
   priority?: TaskPriority;
   attachments?: TaskAttachment[];
+  auto_complete?: boolean;
 }
 
 export interface UpdateTaskInput {
@@ -414,6 +435,7 @@ export interface UpdateTaskInput {
   status?: TaskStatus;
   priority?: TaskPriority;
   attachments?: TaskAttachment[];
+  auto_complete?: boolean;
 }
 
 export interface CreateTaskDetailInput {
@@ -423,6 +445,22 @@ export interface CreateTaskDetailInput {
 
 export interface UpdateTaskDetailInput {
   content: string;
+}
+
+export interface CreateTaskSubtaskInput {
+  task_id: string;
+  content: string;
+  position?: number;
+}
+
+export interface UpdateTaskSubtaskInput {
+  content?: string;
+  is_completed?: boolean;
+  position?: number;
+}
+
+export interface ReorderSubtasksInput {
+  subtask_ids: string[];
 }
 
 export interface TaskWithClient extends Task {

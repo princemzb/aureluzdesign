@@ -1,13 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getAppointments } from '@/lib/actions/admin.actions';
 import { getTasks } from '@/lib/actions/tasks.actions';
 import { format, parseISO, frLocale } from '@/lib/utils/date';
 import { cn } from '@/lib/utils/cn';
 import { APPOINTMENT_STATUSES, EVENT_TYPES } from '@/lib/utils/constants';
-import type { Appointment, TaskPriority } from '@/lib/types';
+import type { Appointment, Task, TaskPriority } from '@/lib/types';
 
 interface DayViewPageProps {
   params: Promise<{ date: string }>;
@@ -48,6 +48,10 @@ export default async function DayViewPage({ params }: DayViewPageProps) {
     return EVENT_TYPES.find((t) => t.value === type)?.label || type;
   };
 
+  // Séparer les tâches avec et sans créneau horaire
+  const tasksWithTime = tasks.filter((t) => t.start_time && t.end_time);
+  const tasksWithoutTime = tasks.filter((t) => !t.start_time || !t.end_time);
+
   // Calculate position and height for appointments
   const getAppointmentStyle = (appointment: Appointment) => {
     const startHour = parseInt(appointment.start_time.split(':')[0]);
@@ -57,6 +61,21 @@ export default async function DayViewPage({ params }: DayViewPageProps) {
 
     const top = ((startHour - 8) * 60 + startMin) * (80 / 60); // 80px par heure
     const height = ((endHour - startHour) * 60 + (endMin - startMin)) * (80 / 60);
+
+    return { top: `${top}px`, height: `${height}px` };
+  };
+
+  // Calculate position and height for tasks with time slots
+  const getTaskStyle = (task: Task) => {
+    if (!task.start_time || !task.end_time) return { top: '0px', height: '60px' };
+
+    const startHour = parseInt(task.start_time.split(':')[0]);
+    const startMin = parseInt(task.start_time.split(':')[1]);
+    const endHour = parseInt(task.end_time.split(':')[0]);
+    const endMin = parseInt(task.end_time.split(':')[1]);
+
+    const top = ((startHour - 8) * 60 + startMin) * (80 / 60); // 80px par heure
+    const height = Math.max(((endHour - startHour) * 60 + (endMin - startMin)) * (80 / 60), 40); // Minimum 40px
 
     return { top: `${top}px`, height: `${height}px` };
   };
@@ -91,10 +110,22 @@ export default async function DayViewPage({ params }: DayViewPageProps) {
         {/* Timeline */}
         <div className="lg:col-span-2 bg-background rounded-xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border">
-            <h2 className="font-medium text-foreground flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Planning de la journée
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-medium text-foreground flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Planning de la journée
+              </h2>
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded bg-yellow-100 border border-yellow-500" />
+                  RDV
+                </span>
+                <span className="flex items-center gap-1">
+                  <CheckSquare className="h-3 w-3" />
+                  Tâche
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="p-4">
@@ -111,17 +142,18 @@ export default async function DayViewPage({ params }: DayViewPageProps) {
                 </div>
               ))}
 
-              {/* Appointments overlay */}
+              {/* Appointments & Tasks overlay */}
               <div className="absolute left-16 right-0 top-0">
+                {/* Rendez-vous */}
                 {appointments.map((appointment) => {
                   const style = getAppointmentStyle(appointment);
                   return (
                     <Link
                       key={appointment.id}
                       href={`/admin/appointments/${appointment.id}`}
-                      style={style}
+                      style={{ ...style, left: '4px', right: '50%' }}
                       className={cn(
-                        'absolute left-1 right-1 rounded-lg p-2 border-l-4 transition-shadow hover:shadow-md',
+                        'absolute rounded-lg p-2 border-l-4 transition-shadow hover:shadow-md',
                         appointment.status === 'pending' && 'bg-yellow-50 border-yellow-500',
                         appointment.status === 'confirmed' && 'bg-green-50 border-green-500',
                         appointment.status === 'cancelled' && 'bg-red-50 border-red-500 opacity-50'
@@ -153,22 +185,81 @@ export default async function DayViewPage({ params }: DayViewPageProps) {
                     </Link>
                   );
                 })}
+
+                {/* Tâches avec créneau horaire */}
+                {tasksWithTime.map((task) => {
+                  const style = getTaskStyle(task);
+                  const colors = PRIORITY_COLORS[task.priority];
+                  return (
+                    <Link
+                      key={task.id}
+                      href={`/admin/tasks/${task.id}`}
+                      style={{ ...style, left: '50%', right: '4px' }}
+                      className={cn(
+                        'absolute rounded-lg p-2 border-l-4 transition-shadow hover:shadow-md',
+                        colors.bg,
+                        colors.border,
+                        task.status === 'completed' && 'opacity-50'
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1">
+                            <CheckSquare className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                            <p className={cn(
+                              'font-medium text-sm truncate',
+                              colors.text,
+                              task.status === 'completed' && 'line-through'
+                            )}>
+                              {task.name}
+                            </p>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {task.start_time?.slice(0, 5)} - {task.end_time?.slice(0, 5)}
+                          </p>
+                          {task.location && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              📍 {task.location}
+                            </p>
+                          )}
+                        </div>
+                        <span className={cn(
+                          'px-1.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0',
+                          task.status === 'pending' && 'bg-gray-100 text-gray-700',
+                          task.status === 'in_progress' && 'bg-amber-100 text-amber-800',
+                          task.status === 'completed' && 'bg-green-100 text-green-700',
+                          task.status === 'cancelled' && 'bg-red-100 text-red-700'
+                        )}>
+                          {task.status === 'pending' && 'À faire'}
+                          {task.status === 'in_progress' && 'En cours'}
+                          {task.status === 'completed' && 'Fait'}
+                          {task.status === 'cancelled' && 'Annulé'}
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Tasks sidebar */}
+        {/* Tasks sidebar (only tasks without time slot) */}
         <div className="bg-background rounded-xl border border-border overflow-hidden h-fit">
           <div className="p-4 border-b border-border">
             <h2 className="font-medium text-foreground">
-              Tâches du jour ({tasks.length})
+              Autres tâches ({tasksWithoutTime.length})
             </h2>
+            {tasksWithTime.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {tasksWithTime.length} tâche{tasksWithTime.length > 1 ? 's' : ''} planifiée{tasksWithTime.length > 1 ? 's' : ''} sur la timeline
+              </p>
+            )}
           </div>
 
-          {tasks.length > 0 ? (
+          {tasksWithoutTime.length > 0 ? (
             <div className="divide-y divide-border">
-              {tasks.map((task) => {
+              {tasksWithoutTime.map((task) => {
                 const colors = PRIORITY_COLORS[task.priority];
                 return (
                   <Link
@@ -198,7 +289,7 @@ export default async function DayViewPage({ params }: DayViewPageProps) {
                       <span className={cn(
                         'px-2 py-0.5 rounded-full text-xs font-medium',
                         task.status === 'pending' && 'bg-gray-100 text-gray-700',
-                        task.status === 'in_progress' && 'bg-blue-100 text-blue-700',
+                        task.status === 'in_progress' && 'bg-amber-100 text-amber-800',
                         task.status === 'completed' && 'bg-green-100 text-green-700',
                         task.status === 'cancelled' && 'bg-red-100 text-red-700'
                       )}>
@@ -214,7 +305,9 @@ export default async function DayViewPage({ params }: DayViewPageProps) {
             </div>
           ) : (
             <div className="p-8 text-center text-muted-foreground">
-              Aucune tâche prévue ce jour
+              {tasks.length > 0
+                ? 'Toutes les tâches sont planifiées sur la timeline'
+                : 'Aucune tâche prévue ce jour'}
             </div>
           )}
         </div>

@@ -13,11 +13,12 @@ import {
   ArrowDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getTaskWithClientAndDetails } from '@/lib/actions/tasks.actions';
+import { getTaskWithClientAndDetails, updateTaskAutoComplete } from '@/lib/actions/tasks.actions';
 import { format, parseISO, frLocale } from '@/lib/utils/date';
 import { cn } from '@/lib/utils/cn';
 import { TaskStatusChanger } from './task-status-changer';
 import { TaskDetailsSection } from './task-details-section';
+import { TaskSubtasksSection } from './task-subtasks-section';
 import type { TaskPriority } from '@/lib/types';
 
 interface TaskDetailPageProps {
@@ -154,6 +155,17 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
               <p className="text-muted-foreground whitespace-pre-wrap">{task.description}</p>
             </div>
           )}
+
+          {/* Subtasks section */}
+          <TaskSubtasksSection
+            taskId={task.id}
+            initialSubtasks={task.subtasks}
+            autoComplete={task.auto_complete}
+            onAutoCompleteChange={async (value) => {
+              'use server';
+              await updateTaskAutoComplete(task.id, value);
+            }}
+          />
 
           {/* Details section */}
           <TaskDetailsSection taskId={task.id} initialDetails={task.details} />

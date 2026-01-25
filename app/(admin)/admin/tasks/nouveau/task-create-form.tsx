@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { TimePicker } from '@/components/ui/time-picker';
 import { createTask } from '@/lib/actions/tasks.actions';
 import type { TaskPriority } from '@/lib/types';
 
@@ -158,24 +159,18 @@ export function TaskCreateForm({ clientId }: TaskCreateFormProps) {
       {/* Time slot */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="start_time">Heure de début</Label>
-          <Input
-            id="start_time"
-            name="start_time"
-            type="time"
+          <Label>Heure de début</Label>
+          <TimePicker
             value={formData.start_time}
-            onChange={handleChange}
+            onChange={(value) => setFormData((prev) => ({ ...prev, start_time: value }))}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="end_time">Heure de fin</Label>
-          <Input
-            id="end_time"
-            name="end_time"
-            type="time"
+          <Label>Heure de fin</Label>
+          <TimePicker
             value={formData.end_time}
-            onChange={handleChange}
+            onChange={(value) => setFormData((prev) => ({ ...prev, end_time: value }))}
           />
         </div>
       </div>

@@ -1,5 +1,15 @@
 # Instructions pour Claude Code
 
+## Contexte du projet
+
+**OBLIGATOIRE** : Avant toute réflexion ou action :
+
+1. **Consulter ARCHITECTURE.md** pour connaître le stack, l'infrastructure et les conventions
+2. **Consulter docs/*.md** pour comprendre les systèmes existants
+3. **Ne jamais demander** des informations déjà documentées (ex: plateforme de déploiement, services utilisés)
+
+Le projet est déployé sur **Vercel** avec **Supabase** (plan Free). Toujours vérifier la doc avant de poser des questions.
+
 ## Avant toute implémentation
 
 **OBLIGATOIRE** : Avant de commencer une nouvelle fonctionnalité ou correction de bug :
@@ -20,6 +30,14 @@ Ne JAMAIS commencer à coder sans validation explicite du plan.
 3. **Ensuite seulement** : Implémenter la correction
 
 Ne JAMAIS corriger silencieusement sans expliquer.
+
+## Migrations SQL
+
+**OBLIGATOIRE** : Avant de proposer une migration SQL :
+
+1. **Vérifier les conventions** existantes dans `supabase/migrations/` (noms de fonctions, triggers, etc.)
+2. **Tester localement** via Docker (`docker exec supabase_db_aureluz psql ...`)
+3. **Ne jamais donner** un script non testé pour la production
 
 ## Commits Git
 

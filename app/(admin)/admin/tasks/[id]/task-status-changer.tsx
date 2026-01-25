@@ -13,11 +13,11 @@ interface TaskStatusChangerProps {
   currentStatus: TaskStatus;
 }
 
-const STATUS_CONFIG: Record<TaskStatus, { label: string; icon: typeof Check; color: string }> = {
-  pending: { label: 'En attente', icon: Clock, color: 'bg-gray-100 text-gray-700 border-gray-300' },
-  in_progress: { label: 'En cours', icon: Play, color: 'bg-blue-100 text-blue-700 border-blue-300' },
-  completed: { label: 'Terminé', icon: Check, color: 'bg-green-100 text-green-700 border-green-300' },
-  cancelled: { label: 'Annulé', icon: X, color: 'bg-red-100 text-red-700 border-red-300' },
+const STATUS_CONFIG: Record<TaskStatus, { label: string; icon: typeof Check; color: string; activeRing: string }> = {
+  pending: { label: 'En attente', icon: Clock, color: 'bg-gray-100 text-gray-700 border-gray-300', activeRing: 'ring-gray-300' },
+  in_progress: { label: 'En cours', icon: Play, color: 'bg-amber-100 text-amber-800 border-amber-400 font-semibold', activeRing: 'ring-amber-400 ring-2' },
+  completed: { label: 'Terminé', icon: Check, color: 'bg-green-100 text-green-700 border-green-300', activeRing: 'ring-green-300' },
+  cancelled: { label: 'Annulé', icon: X, color: 'bg-red-100 text-red-700 border-red-300', activeRing: 'ring-red-300' },
 };
 
 const STATUS_ORDER: TaskStatus[] = ['pending', 'in_progress', 'completed', 'cancelled'];
@@ -64,7 +64,8 @@ export function TaskStatusChanger({ taskId, currentStatus }: TaskStatusChangerPr
             className={cn(
               'gap-2 transition-all',
               isActive && config.color,
-              isActive && 'ring-2 ring-offset-2 ring-primary/30'
+              isActive && 'ring-offset-2',
+              isActive && config.activeRing
             )}
           >
             {isLoading && selectedStatus === status ? (

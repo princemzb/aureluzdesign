@@ -7,6 +7,7 @@ import type {
   TaskWithClient,
   TaskWithDetails,
   TaskDetail,
+  TaskSubtask,
   CreateTaskInput,
   UpdateTaskInput,
   CreateTaskDetailInput,
@@ -159,10 +160,30 @@ export async function getTaskWithDetails(id: string): Promise<TaskWithDetails | 
 }
 
 /**
- * Récupère une tâche avec client et détails
+ * Récupère une tâche avec client, détails et sous-tâches
  */
-export async function getTaskWithClientAndDetails(id: string): Promise<(TaskWithClient & { details: TaskDetail[] }) | null> {
+export async function getTaskWithClientAndDetails(id: string): Promise<(TaskWithClient & { details: TaskDetail[]; subtasks: TaskSubtask[] }) | null> {
   return TasksService.getByIdWithClientAndDetails(id);
+}
+
+/**
+ * Met à jour le paramètre auto_complete d'une tâche
+ */
+export async function updateTaskAutoComplete(id: string, autoComplete: boolean): Promise<ActionResult<Task>> {
+  try {
+    const task = await TasksService.update(id, { auto_complete: autoComplete });
+    revalidatePath(`/admin/tasks/${id}`);
+    return {
+      success: true,
+      data: task,
+    };
+  } catch (error) {
+    console.error('Error in updateTaskAutoComplete action:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur lors de la mise à jour',
+    };
+  }
 }
 
 /**

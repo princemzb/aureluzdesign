@@ -111,6 +111,7 @@ tasks (
   status task_status DEFAULT 'pending',  -- pending, in_progress, completed, cancelled
   priority task_priority DEFAULT 'normal', -- urgent, high, normal, low
   attachments jsonb DEFAULT '[]',
+  auto_complete boolean DEFAULT false,   -- Terminer auto quand toutes les sous-tâches sont faites
   created_at timestamptz,
   updated_at timestamptz,
   completed_at timestamptz
@@ -126,6 +127,22 @@ task_details (
   id uuid PRIMARY KEY,
   task_id uuid REFERENCES tasks NOT NULL ON DELETE CASCADE,
   content text NOT NULL,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+```
+
+### Table `task_subtasks`
+
+Checklist de sous-tâches avec drag & drop pour réorganisation.
+
+```sql
+task_subtasks (
+  id uuid PRIMARY KEY,
+  task_id uuid REFERENCES tasks NOT NULL ON DELETE CASCADE,
+  content text NOT NULL,
+  is_completed boolean DEFAULT false,
+  position integer DEFAULT 0,        -- Pour l'ordre d'affichage
   created_at timestamptz,
   updated_at timestamptz
 )
@@ -148,6 +165,7 @@ ALTER TABLE quotes ADD COLUMN client_id uuid REFERENCES clients NOT NULL;
 | `019_link_quotes_to_clients.sql` | Ajout client_id aux quotes + migration données |
 | `020_client_cascade_delete.sql` | FK avec CASCADE pour suppression client |
 | `021_task_details_and_times.sql` | Table task_details + champs start_time/end_time |
+| `022_task_subtasks.sql` | Table task_subtasks + champ auto_complete |
 
 ### Services
 
@@ -155,13 +173,15 @@ ALTER TABLE quotes ADD COLUMN client_id uuid REFERENCES clients NOT NULL;
 |---------|-------------|
 | `lib/services/clients.service.ts` | CRUD clients, recherche, pagination, stats |
 | `lib/services/tasks.service.ts` | CRUD tâches, filtrage, calendrier, détails |
+| `lib/services/task-subtasks.service.ts` | CRUD sous-tâches, toggle, réordonnancement, auto-completion |
 
 ### Actions
 
 | Fichier | Description |
 |---------|-------------|
 | `lib/actions/clients.actions.ts` | Server actions clients |
-| `lib/actions/tasks.actions.ts` | Server actions tâches + détails |
+| `lib/actions/tasks.actions.ts` | Server actions tâches + détails + auto_complete |
+| `lib/actions/task-subtasks.actions.ts` | Server actions sous-tâches (CRUD, toggle, reorder) |
 
 ### Pages
 
@@ -189,6 +209,7 @@ ALTER TABLE quotes ADD COLUMN client_id uuid REFERENCES clients NOT NULL;
 | `components/admin/delete-client-button.tsx` | Bouton suppression avec confirmation |
 | `app/.../tasks/[id]/task-status-changer.tsx` | Boutons changement de statut |
 | `app/.../tasks/[id]/task-details-section.tsx` | Gestion des détails/notes |
+| `app/.../tasks/[id]/task-subtasks-section.tsx` | Checklist avec drag & drop (@dnd-kit) |
 
 ## Concepts clés
 
@@ -247,6 +268,47 @@ interface Task {
 ```
 
 Dans la vue journalière de l'agenda, les tâches avec créneau pourraient être positionnées sur la timeline (fonctionnalité future).
+
+### Sous-tâches (Checklist)
+
+Chaque tâche peut avoir une liste de sous-tâches réorganisables par drag & drop.
+
+```typescript
+interface TaskSubtask {
+  id: string;
+  task_id: string;
+  content: string;
+  is_completed: boolean;
+  position: number;  // Pour l'ordre d'affichage
+  created_at: string;
+  updated_at: string;
+}
+```
+
+**Fonctionnalités :**
+- Barre de progression (ex: 3/5 complétées)
+- Toggle completion avec checkbox
+- Réorganisation par drag & drop (@dnd-kit)
+- Option "Terminer automatiquement" : la tâche passe en `completed` quand toutes les sous-tâches sont cochées
+
+**Utilisation :**
+
+```typescript
+// Créer une sous-tâche
+await createTaskSubtask({
+  task_id: 'xxx',
+  content: 'Préparer le matériel',
+});
+
+// Toggle état
+await toggleTaskSubtask(subtaskId, taskId);
+
+// Réorganiser après drag & drop
+await reorderTaskSubtasks(taskId, ['id1', 'id2', 'id3']);
+
+// Activer l'auto-completion
+await updateTaskAutoComplete(taskId, true);
+```
 
 ### Navigation agenda → tâche
 
@@ -340,7 +402,8 @@ La suppression d'un client entraîne la suppression en cascade de toutes ses don
 ```
 Client supprimé
   ├── Tâches (CASCADE automatique via FK)
-  │     └── Détails de tâche (CASCADE automatique via FK)
+  │     ├── Détails de tâche (CASCADE automatique via FK)
+  │     └── Sous-tâches (CASCADE automatique via FK)
   ├── Devis (CASCADE automatique via FK)
   │     └── Factures (CASCADE automatique via FK quote_id)
   └── RDV (suppression manuelle par email dans le service)
@@ -407,6 +470,26 @@ AND completed_at < NOW() - INTERVAL '6 months';
 SELECT td.* FROM task_details td
 LEFT JOIN tasks t ON td.task_id = t.id
 WHERE t.id IS NULL;
+```
+
+### Nettoyer les sous-tâches orphelines
+
+```sql
+-- Sous-tâches sans tâche (ne devrait pas arriver avec CASCADE)
+SELECT ts.* FROM task_subtasks ts
+LEFT JOIN tasks t ON ts.task_id = t.id
+WHERE t.id IS NULL;
+```
+
+### Vérifier les positions des sous-tâches
+
+```sql
+-- Sous-tâches avec positions incohérentes
+SELECT task_id, array_agg(position ORDER BY position) as positions
+FROM task_subtasks
+GROUP BY task_id
+HAVING array_agg(position ORDER BY position) != array_agg(generate_series ORDER BY generate_series)
+FROM generate_series(0, count(*) - 1);
 ```
 
 ## Dernière mise à jour
